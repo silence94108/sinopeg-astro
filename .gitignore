@@ -24,3 +24,8 @@ pnpm-debug.log*
 .idea/
 .vscode/
 .history/
+
+# lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
