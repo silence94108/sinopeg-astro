@@ -1,26 +1,38 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import '../styles/global.css';
+import '../styles/StyleSheet.css';
+import '../styles/swiper.min.css';
+import '../styles/index.css';
+import '../styles/search_list.css';
 
-const { pageTitle } = Astro.props;
+const { tdk } = Astro.props;
 ---
 
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>{pageTitle}</title>
-  </head>
-  <body>
-    <Header />
-    <h1>{pageTitle}</h1>
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>{tdk && tdk.title}</title>
+  <meta name="keywords" content={tdk && tdk.keywords} />
+  <meta name="description" content={tdk && tdk.description} />
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+  <meta name="renderer" content="webkit" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="images/favicon.ico" type="image/x-icon" rel="shortcut icon" />
+  <!-- <script src="js/jquery.min.js"></script>
+  <script src="js/vue@3.2.37.js"></script>
+  <script src="js/swiper.min.js"></script>
+  <script src="js/jzt_common.js?v=202606291030"></script>
+  <script src="js/index.js"></script> -->
+</head>
+
+<body>
+  <Header />
+  <main>
     <slot />
-    <Footer />
-    <script>
-      import "../scripts/menu.js";
-    </script>
-  </body>
+  </main>
+  <Footer />
+</body>
 </html>

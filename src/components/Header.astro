@@ -1,13 +1,198 @@
 ---
-import Navigation from "./Navigation.astro";
-import Hamburger from "./Hamburger.astro"; // Duplicate import to test for duplicate import warnings
-import ThemeIcon from "./ThemeIcon.astro";
+const logoSrc = "/images/logo.png";
+const logoAlt = "Logo";
+
+const menuList:any = [];   // 导航菜单
+const isProductNav = (item: any) => {
+  if (!item) return false;
+  return item.name === "产品" || /project\.html/.test(item.link || "");
+};
+
+const categories:any = [];  // 产品分类
+const rootCategories:any = [];  // 产品分类
+const getChildren = (pid: any) => categories.filter((c: any) => c.pid === pid)
+const hasChildren = (id: any) => getChildren(id).length > 0
 ---
 
-<header>
-  <nav>
-    <Hamburger />
-    <ThemeIcon />
-    <Navigation />
-  </nav>
-</header>
+<div class="header">
+  <div class="inner">
+    <div class="logo">
+      <h2><a href="/"><img src={logoSrc} alt={logoAlt}></a></h2>
+    </div>
+    <div class="header_right">
+      <ul class="nav_list clearfix">
+        {menuList.map((item:any) => (
+            <li
+              class="nav_item"
+              @mouseenter="isProductNav(item) ? onMegaEnter($event) : null"
+              @mouseleave="isProductNav(item) ? onMegaLeave($event) : null"
+            >
+              <a
+                href={item.link}
+                class="nav_link"
+                target={item.target ? '_blank' : null}
+                rel={item.target ? 'noopener noreferrer nofollow' : null}
+              >{ item.name }</a>
+              {isProductNav(item) && rootCategories.length > 0 && (
+                <div class="nav_mega"
+                  @mouseenter="onMegaEnter($event.currentTarget.closest('.nav_item'))"
+                  @mouseleave="onMegaLeave($event.currentTarget.closest('.nav_item'))"
+                >
+                  <div class="nav_mega_inner">
+                    {rootCategories.map((root: any) => (
+                      <div class="nav_mega_group">
+                        <a href={`/project/?category_id=${root.id}`} class="nav_mega_title">{ root.title }</a>
+                        {hasChildren(root.id) && (
+                          <div class="nav_mega_children">
+                            <div class="nav_mega_child_group" v-for="child in getChildren(root.id)" :key="child.id">
+                              <a :href="getListLink(child.id, root.id)" class="nav_mega_child_title">{{ child.title }}</a>
+                              <div class="nav_mega_grand_list" v-if="hasChildren(child.id)">
+                                <a
+                                  v-for="grand in getChildren(child.id)"
+                                  :key="grand.id"
+                                  :href="getListLink(grand.id, child.id, root.id)"
+                                  class="nav_mega_grand_child"
+                                >{{ grand.title }}</a>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+      <!-- <a href="https://www.sinopeg.com/" class="en" target="_blank">
+        <img src="images/en.png" />
+      </a>
+      <form class="header_form" @submit.prevent="submitSearch">
+        <input type="button" class="header_form_btu" @click="submitSearch" />
+        <input
+          type="text"
+          class="header_form_input"
+          autocomplete="off"
+          v-model="keyword"
+          placeholder="关键词搜索"
+          @input="updatePcSuggestions"
+          @focus="updatePcSuggestions"
+          @blur="hidePcSuggestions"
+        />
+      </form>
+      <div class="laji" style="position: absolute; right: 0; top: 77%; width: 25%; border-radius: 10px;">
+        <ul
+          id="search_list2"
+          v-show="pcSuggestionsVisible && pcSuggestions.length"
+          style="display: block; border: 1px solid #1459A8; background: #EBEBEB; padding: 20px; border-radius: 10px;"
+        >
+          <li
+            v-for="item in pcSuggestions"
+            :key="'pc-' + item"
+            style="font-size: 14px; cursor: pointer;"
+            @mousedown.prevent="selectSuggestion(item)"
+          >{{ item }}</li>
+        </ul>
+      </div> -->
+    </div>
+  </div>
+</div>
+<div class="blank80"></div>
+<!-- <div class="header_sp">
+  <div class="inner">
+    <div class="header_sp_section">
+      <div class="logo"><a href="index.html"><img :src="logoSrc" :alt="logoAlt"></a></div>
+      <a href="https://www.sinopeg.com/" class="en" target="_blank" rel="noopener noreferrer nofollow">
+        <img src="images/en.png" />
+      </a>
+      <form class="header_form" @submit.prevent="submitSearch">
+        <input
+          type="text"
+          class="header_form_input"
+          autocomplete="off"
+          v-model="keyword"
+          placeholder="关键词搜索"
+          @input="updateMobileSuggestions"
+          @focus="updateMobileSuggestions"
+          @blur="hideMobileSuggestions"
+        />
+        <input type="button" class="header_form_btu" @click="submitSearch" />
+      </form>
+      <div style="position: absolute; right: 0; top: 57%; width: 100%; z-index: 12;">
+        <ul
+          id="search_list3"
+          v-show="mobileSuggestionsVisible && mobileSuggestions.length"
+          style="display: block; height: 100px; width: 100%; border: 1px solid #1459A8; background: #EBEBEB; padding: 10px; border-radius: 5px; overflow-y: scroll;"
+        >
+          <li
+            v-for="item in mobileSuggestions"
+            :key="'mobile-' + item"
+            style="font-size: 14px; cursor: pointer;"
+            @mousedown.prevent="selectSuggestion(item)"
+          >{{ item }}</li>
+        </ul>
+      </div>
+    </div>
+    <div class="header_menu">
+      <span>菜单</span>
+      <img src="images/nav1.png" />
+    </div>
+    <ul class="menu_list">
+      <li class="menu_item" v-for="item in menuList" :key="item.id || item.name">
+        <template v-if="isProductNav(item) && rootCategories.length">
+          <div class="menu_link menu_link1" :class="{ menu1_current: mobileProductOpen }">
+            <a :href="item.link">{{ item.name }}</a>
+            <span class="menu_jia" @click.stop.prevent="toggleMobileProduct">+</span>
+            <span class="menu_jian" @click.stop.prevent="toggleMobileProduct">-</span>
+          </div>
+          <div class="menu_er" :style="{ display: mobileProductOpen ? 'block' : 'none' }">
+            <div
+              class="menu_area"
+              :class="{ menu_current: isMobileRootOpen(root.id) }"
+              v-for="root in rootCategories"
+              :key="root.id"
+            >
+              <div class="menu_link menu_link2">
+                <a :href="'project.html?category_id=' + root.id">{{ root.title }}</a>
+                <span class="menu_jia" v-if="hasChildren(root.id)" @click.stop.prevent="toggleMobileRoot(root.id)">+</span>
+                <span class="menu_jian" v-if="hasChildren(root.id)" @click.stop.prevent="toggleMobileRoot(root.id)">-</span>
+              </div>
+              <ul class="menu_er_list" v-if="hasChildren(root.id)" v-show="isMobileRootOpen(root.id)">
+                <template v-for="child in getChildren(root.id)" :key="child.id">
+                  <li
+                    class="menu_er_item"
+                    :class="{ menu_er_current: isMobileChildOpen(child.id) }"
+                    v-if="hasChildren(child.id)"
+                  >
+                    <div class="menu_link menu_link3">
+                      <a :href="getListLink(child.id, root.id)">{{ child.title }}</a>
+                      <span class="menu_jia" @click.stop.prevent="toggleMobileChild(child.id)">+</span>
+                      <span class="menu_jian" @click.stop.prevent="toggleMobileChild(child.id)">-</span>
+                    </div>
+                    <ul class="menu_san_list" v-show="isMobileChildOpen(child.id)">
+                      <li class="menu_san_item" v-for="grand in getChildren(child.id)" :key="grand.id">
+                        <a :href="getListLink(grand.id, child.id, root.id)" class="menu_san_link">{{ grand.title }}</a>
+                      </li>
+                    </ul>
+                  </li>
+                  <li class="menu_san_item" v-else>
+                    <a :href="getListLink(child.id, root.id)" class="menu_san_link">{{ child.title }}</a>
+                  </li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </template>
+        <a
+          v-else
+          :href="item.link"
+          class="menu_link"
+          :target="item.target ? '_blank' : null"
+          :rel="item.target ? 'noopener noreferrer' : null"
+        >{{ item.name }}</a>
+      </li>
+    </ul>
+  </div>
+</div> -->
