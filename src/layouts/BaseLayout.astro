@@ -5,27 +5,37 @@ import '../styles/StyleSheet.css';
 import '../styles/swiper.min.css';
 import '../styles/index.css';
 import '../styles/search_list.css';
+import { requestData } from '../lib/utils';
 
 const { tdk } = Astro.props;
+
+const siteInfo:any = requestData('site') || {}
+
+const title = tdk && tdk.title || siteInfo.title
+const keywords = tdk && tdk.keywords || siteInfo.keywords
+const description = tdk && tdk.description || siteInfo.description
+const ico = siteInfo.icon || '/images/favicon.ico'
 ---
 
 <!DOCTYPE html>
 <html>
 
 <head>
-  <title>{tdk && tdk.title}</title>
-  <meta name="keywords" content={tdk && tdk.keywords} />
-  <meta name="description" content={tdk && tdk.description} />
+  <title>{title}</title>
+  <meta name="keywords" content={keywords} />
+  <meta name="description" content={description} />
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
   <meta name="renderer" content="webkit" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="images/favicon.ico" type="image/x-icon" rel="shortcut icon" />
-  <!-- <script src="js/jquery.min.js"></script>
-  <script src="js/vue@3.2.37.js"></script>
-  <script src="js/swiper.min.js"></script>
-  <script src="js/jzt_common.js?v=202606291030"></script>
-  <script src="js/index.js"></script> -->
+  <link href={ico} type="image/x-icon" rel="shortcut icon" />
+  <script src="../scripts/jquery.min.js"></script>
+  <script src="../scripts/swiper.min.js"></script>
+  <script>
+    import { submitStatistics } from '../scripts/analytics'
+
+    void submitStatistics()
+  </script>
 </head>
 
 <body>
