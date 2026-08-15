@@ -1,18 +1,176 @@
 ---
-import Social from "./Social.astro";
-const platform = "github";
-const username = "withastro";
+import { requestData } from "../lib/utils";
+
+const menuList: any = requestData("nav", {
+  sort: "sortAsc",
+  data_type: "list",
+}).filter((item: any) => !item.noFoot); // 导航菜单
+
+// 底部联系分类：底部主联系信息使用这组数据
+const CONTACT_CATEGORY_ID = "6a16acfdb055ec6ea9349238";
+// 右侧悬浮分类：保持原有电话/邮箱浮窗数据来源
+const FU_CATEGORY_ID = "6a17ff5841b6523d0d6ae191";
+// 底部右侧三方联系：Twitter / Facebook / LinkedIn / QQ / 微信二维码
+const FOOTER_SOCIAL_CATEGORY_ID = "6a1fa3c25d18e445640272f1";
+// 底部备案信息：取这条 contact 数据的详情
+const RECORD_ID = "6a1cf82a485fd200f815be37";
+
+const footerContactList: any = requestData("contact", {
+  data_type: "list",
+  category_id: CONTACT_CATEGORY_ID,
+  sort: "sortAsc",
+  limit: -1
+})
+
+const footerSocialDataList = requestData("contact", {
+  data_type: "list",
+  category_id: FOOTER_SOCIAL_CATEGORY_ID,
+  sort: "sortAsc",
+  limit: -1
+})
+
+const iconMap: any = {
+  Twitter链接: "images/twitter.png",
+  Facebook链接: "images/facebook.png",
+  领英链接: "images/foo1.png",
+  QQ: "images/foo2.png",
+  微信: "images/foo3.png"
+};
+
+const modeMap: any = {
+  Twitter链接: "link",
+  Facebook链接: "link",
+  领英链接: "link",
+  QQ: "text",
+  微信: "qr"
+};
+
+const sortMap: any = {
+  Twitter链接: 1,
+  Facebook链接: 2,
+  领英链接: 3,
+  QQ: 4,
+  微信: 5
+};
+const footerSocialList: any = () => {
+  return (footerSocialDataList || [])
+    .filter((item: any) => item && item.title && iconMap[item.title])
+    .sort((a: any, b: any) => {
+      const aSort = sortMap[a.title] || Number(a.sort || 999);
+      const bSort = sortMap[b.title] || Number(b.sort || 999);
+      return aSort - bSort;
+    })
+    .map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      mode: modeMap[item.title],
+      icon: iconMap[item.title],
+      link: String(item.intro || item.details || "").trim(),
+      text: String(item.details || item.intro || "").trim(),
+      image: item.bg_img || ""
+    }));
+}
+console.log(footerSocialList())
+
+const recordData = requestData("contact", {
+  data_type: "list",
+  id: RECORD_ID,
+  limit: -1
+})
+const recordInfo = recordData && recordData[0]
 ---
-<style>
-  footer {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-  }
-</style>
-<footer>
-  <p>在 <a href={`https://www.${platform}.com/${username}`}>{platform}</a> 上，了解有关我的项目的更多信息！</p>
-  <Social platform="twitter" username="astrodotbuild" />
-  <Social platform="github" username="withastro" />
-  <Social platform="youtube" username="astrodotbuild" />
-</footer>
+<div>
+  <div class="footer footer1">
+    <div class="inner">
+      <div class="footer_list">
+        {menuList.map((item: any) => (
+          <a
+            href={item.link.replace("./", "/").replace(".html", "")}
+            class="footer_link"
+            target={item.target ? '_blank' : null}
+            rel={item.target ? 'noopener noreferrer nofollow' : null}
+          >{ item.title }</a>
+        ))}
+      </div>
+      <div class="footer_section">
+        <div class="footer_left">
+          <img src="images/logo.png" />
+          <div class="footer_con">
+            {footerContactList.map((item: any) => (
+              <div class="footer_con_info">
+                <img src={item.botImg} />
+                <div class="footer_con_box"><span set:html={item.details}></span></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="footer_right">
+          {footerSocialList().map((item: any) => (
+            <div class="footer_right_info">
+              {item.mode === 'link' && item.link && (
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                >
+                  <img src={item.icon} />
+                </a>
+              )}
+              {item.mode === 'text' && (
+                <img src={item.icon} />
+                <span class="footer_qq">{ item.text }</span>
+              )}
+              {item.mode === 'qr' && (
+                <>
+                <img src={item.icon} />
+                {item.image && (
+                  <div class="footer_code">
+                    <img src={item.image} />
+                    <span>扫码联系我们</span>
+                  </div>
+                )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    <span class="small" set:html={recordInfo.details}></span>
+  </div>
+  <div class="fu">
+    <div class="fu_box fu_liu" @click="openLiu">
+      <img src="images/fu4.png" />
+    </div>
+    <div class="fu_box pc1">
+      <img src="images/fu1.png" />
+      <div class="fu_info" v-if="phoneItem.details" v-html="phoneItem.details"></div>
+    </div>
+    <div class="fu_box sp">
+      <a :href="phoneTel ? 'tel:' + phoneTel : 'javascript:;'"><img src="images/fu1.png" /></a>
+    </div>
+    <div class="fu_box">
+      <img src="images/fu2.png" />
+      <div class="fu_info" v-if="emailItem.details" v-html="emailItem.details"></div>
+    </div>
+    <div class="fu_box fu_box2 top" @click="backTop">
+      <img src="images/fu3.png" />
+      <span>TOP</span>
+    </div>
+    <div class="fu_box1 fu_box top" @click="backTop">
+      <img src="images/fu5.png" />
+      <span>TOP</span>
+    </div>
+  </div>
+  <div class="liu">
+    <div class="liu_section" @click="openLiu">
+      <img src="images/chat.png" />
+      <span class="liu_section_text">在线留言</span>
+    </div>
+    <div class="liu_model" :style="{ display: showLiu ? 'block' : 'none' }" @click="closeLiu"></div>
+    <div class="liu_block" :style="{ display: showLiu ? 'block' : 'none' }">
+      <span class="liu_title">留言</span>
+      <message-form-app caption="如果您有任何疑问或建议，请给我们留言" @success="closeLiu"></message-form-app>
+    </div>
+  </div>
+</div>
