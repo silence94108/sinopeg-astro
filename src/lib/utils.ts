@@ -1,653 +1,473 @@
-import { object } from "astro:schema"
-
-var baseUrl = './jsonDatas/'
-
 /* 数据列表处理
-	* api 需要获取的数据JSON文件
-	* datas {
-		** data_type 数据返回格式 'page || list || show' 默认'page'
-		*** 'page': {
-				total: (总条数)
-				last_page: (总页数)
-				data: (数据列表)
-			}
-		*** 'list': list(数据列表)
-		*** 'show': {
-				up: (上一条数据),
-				down: (下一条数据),
-				info: (详情内容)
-			}
-		** page 当前页 默认1
-		** limit 每页显示条数 默认10  获取全部数据时可设置为-1
-		** category_id 分类id筛选
-		** id  列表数据id筛选
-		** sort 排序筛选 timeAsc时间正序、timeDesc时间倒序、sortAsc排序ID正序、sortDesc排序ID倒序
-		** list_type all取所有数据（包含所有子级） alone只取当前分类所有数据（不包含所有子级）children分类子集递归查询 默认为alone
-		** type 类型筛选（主要用于category.json分类筛选） goods产品 content文章 text信息 carousel轮播 image图片
-		** column_id 栏目ID筛选(栏目ID从制作端查看)
-		** search_name 标题或指定字段模糊查找
-		** browse  是否统计阅读量（仅限获取详情使用）
-		** method  请求方式  session:缓存session
-	} 数据筛选条件
+  * api 需要获取的数据JSON文件
+  * datas {
+    ** data_type 数据返回格式 'page || list || show' 默认'page'
+    *** 'page': {
+        total: (总条数)
+        last_page: (总页数)
+        data: (数据列表)
+      }
+    *** 'list': list(数据列表)
+    *** 'show': {
+        up: (上一条数据),
+        down: (下一条数据),
+        info: (详情内容)
+      }
+    ** page 当前页 默认1
+    ** limit 每页显示条数 默认10  获取全部数据时可设置为-1
+    ** category_id 分类id筛选
+    ** id  列表数据id筛选
+    ** sort 排序筛选 timeAsc时间正序、timeDesc时间倒序、sortAsc排序ID正序、sortDesc排序ID倒序
+    ** list_type all取所有数据（包含所有子级） alone只取当前分类所有数据（不包含所有子级）children分类子集递归查询 默认为alone
+    ** type 类型筛选（主要用于category.json分类筛选） goods产品 content文章 text信息 carousel轮播 image图片
+    ** column_id 栏目ID筛选(栏目ID从制作端查看)
+    ** search_name 标题或指定字段模糊查找
+    ** browse  兼容旧参数；阅读量由详情页客户端调用 submitReadCount
+    ** method  兼容旧参数；构建期本地 JSON 不再使用 session 请求缓存
+  } 数据筛选条件
 */
 
-interface paramsConfig {
-  data_type?: string;
+export type DataItem = Record<string, any>
+export type DataType = 'page' | 'list' | 'show'
+export type ListType = 'alone' | 'all' | 'children'
+export type SortType = 'sortAsc' | 'sortDesc' | 'timeAsc' | 'timeDesc'
+
+export interface ParamsConfig {
+  data_type?: DataType;
   page?: number;
   limit?: number;
-  category_id?: string;
-  id?: string;
-  sort?: string;
-  list_type?: string;
+  category_id?: string | number;
+  id?: string | number;
+  sort?: SortType;
+  list_type?: ListType;
   type?: string;
-  column_id?: string;
+  column_id?: string | number;
   search_name?: string;
+  search_fields?: string[];
+  exact_search?: boolean;
+  search_to_lowerCase?: boolean;
+  search_in_intro_detail?: boolean;
+  // 兼容旧调用；阅读量已移到客户端 submitReadCount，不再由筛选方法处理。
   browse?: number | boolean;
+  // 兼容旧调用；本地构建期 JSON 不再需要 session 请求缓存。
   method?: string;
+  // 支持 isIndex、isNav、recommend 等数据中已有字段的动态精确筛选。
+  [key: string]: unknown;
 }
 
-type RequestCallback = (result: any) => void
+type JsonData = unknown[] | Record<string, unknown>
 
-// 重复请求处理
-let requestList: any = []
-let requestWait: any = []
+const jsonFiles = import.meta.glob(
+  './jsonDatas/**/*.json',
+  {
+    eager: true,
+    import: 'default'
+  }
+) as Record<string, JsonData>
 
-// 全局缓存数据
-let jsonArr: any = {}
-// 分类数据
-let cateJson: any
+/**
+ * 按相对名称读取 jsonDatas 目录中的 JSON。
+ * 例如 getJsonData('news') 读取 news.json，getJsonData('goods/123') 读取 goods/123.json。
+ */
+export function getJsonData<T = JsonData>(name: string): T {
+  const path = `./jsonDatas/${name}.json`
+  const result = jsonFiles[path]
 
-export const requestData = (
+  if (!result) {
+    throw new Error(`找不到数据文件：${path}`)
+  }
+
+  return result as T
+}
+
+/**
+ * 读取指定列表 JSON，并根据 params 完成筛选、排序、分页或详情处理。
+ * 不传 params 时直接返回原始列表数据。
+ */
+export function requestData(
   api: string,
-  data: paramsConfig | null = null,
-  callBack: RequestCallback,
-  async?: boolean = true
-) => {
-	cateJson = getData('category', data)
-	if (!cateJson) {
-		requestWait.push({ api, data, callBack, async })
-		ajaxData('category', data, async, item => {
-			requestData(item.api, item.data, item.callBack, item.async)
-		})
-	} else {
-		cateJson = JSON.parse(cateJson)
-		var response = getData(api, data)
-		if (response) {
-			response = JSON.parse(response)
-			responseData(api, data, response, callBack)
-			return
-		}
-		if (!requestList.includes(api)) {
-			ajaxData(api, data, async, item => {
-				if (item.api === api) {
-					requestData(item.api, item.data, item.callBack, item.async)
-				}
-			}, result => {
-				responseData(api, data, result, callBack)
-			})
-		} else {
-			let obj = { api, data, callBack, async }
-			/* if (isObjectInArray(requestWait, obj))  */requestWait.push(obj)
-		}
-	}
+  params: ParamsConfig | null = null
+) {
+  const source = getJsonData<DataItem[]>(api)
+
+  if (!Array.isArray(source)) {
+    throw new Error(`${api}.json 不是列表数据`)
+  }
+
+  if (!params) return source
+
+  // category.json 是分类树和分类名称补全的数据源；请求分类本身时直接复用 source。
+  const cateJson = api === 'category'
+    ? source
+    : getJsonData<DataItem[]>('category')
+
+  return filterDataList(api, params, source, cateJson)
 }
 
-// 获取数据
-const getData = (
+type DateInput = string | number | Date
+
+/**
+ * 将日期或时间戳格式化为指定字符串。
+ *
+ * 支持的占位符：Y 年、m 月、d 日、h 时、i 分、s 秒。
+ * 例如：timeStamp2String(time, 'Y-m-d h:i:s')。
+ */
+export const timeStamp2String = (
+  time: DateInput,
+  format = 'Y-m-d h:i:s'
+): string => {
+  let date: Date
+
+  if (time instanceof Date) {
+    date = new Date(time.getTime())
+  } else if (
+    typeof time === 'number' ||
+    (typeof time === 'string' && /^\d+$/.test(time))
+  ) {
+    const timestamp = Number(time)
+    // 10 位 Unix 时间戳按秒处理，其余数字按毫秒处理。
+    date = new Date(String(Math.trunc(Math.abs(timestamp))).length === 10
+      ? timestamp * 1000
+      : timestamp)
+  } else {
+    // 兼容 Safari 对 YYYY-MM-DD HH:mm:ss 格式的解析。
+    date = new Date(time.replace(/-/g, '/'))
+  }
+
+  if (Number.isNaN(date.getTime())) return ''
+
+  const pad = (value: number) => String(value).padStart(2, '0')
+  const values: Record<string, string> = {
+    Y: String(date.getFullYear()),
+    m: pad(date.getMonth() + 1),
+    d: pad(date.getDate()),
+    h: pad(date.getHours()),
+    i: pad(date.getMinutes()),
+    s: pad(date.getSeconds())
+  }
+
+  return format.replace(/[Ymdhis]/g, token => values[token])
+}
+
+/**
+ * 将搜索字段统一转换为可比较的字符串，并按需转成小写。
+ * 数组和对象会先合并其内容，null 和 undefined 会转换为空字符串。
+ */
+function normalizeSearchFieldValue(value: unknown, toLowerCase: boolean) {
+  if (value === undefined || value === null) return ''
+  if (Array.isArray(value)) {
+    value = value.map(item => {
+      if (item === undefined || item === null) return ''
+      if (typeof item === 'object') return Object.values(item as Record<string, unknown>).join(' ')
+      return item
+    }).join(' ')
+  } else if (typeof value === 'object') {
+    value = Object.values(value as Record<string, unknown>).join(' ')
+  }
+  const normalizedValue = String(value).trim()
+  return toLowerCase ? normalizedValue.toLowerCase() : normalizedValue
+}
+
+/** 判断单个字段是否符合关键词，支持精确匹配和包含匹配。 */
+function matchSearchFieldValue(
+  value: unknown,
+  keyword: unknown,
+  exactSearch: boolean,
+  toLowerCase: boolean
+) {
+  const source = normalizeSearchFieldValue(value, toLowerCase)
+  const target = normalizeSearchFieldValue(keyword, toLowerCase)
+  if (!source || !target) return false
+  return exactSearch ? source === target : source.includes(target)
+}
+
+/** 判断一条数据的任意指定字段是否命中搜索关键词。 */
+function matchSearchKeywordByFields(
+  item: DataItem,
+  keyword: unknown,
+  fields: string[],
+  exactSearch: boolean,
+  toLowerCase: boolean
+) {
+  if (!item || !Array.isArray(fields) || !fields.length) return false
+  return fields.some(field => matchSearchFieldValue(item[field], keyword, exactSearch, toLowerCase))
+}
+
+/** 将单个 ID 或逗号分隔的多个 ID 统一转成字符串数组。 */
+const splitIds = (value: unknown): string[] => {
+  if (value === undefined || value === null) return []
+
+  return String(value)
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean)
+}
+/** 判断两个 ID 集合是否存在交集，左右两边都支持逗号分隔。 */
+const hasIdIntersection = (left: unknown, right: unknown): boolean => {
+  const rightIds = new Set(splitIds(right))
+  return splitIds(left).some(id => rightIds.has(id))
+}
+
+/**
+ * 复制数据并转换 create_time。
+ * 这样筛选过程中增加 category、children、level 等字段时不会污染原始 JSON。
+ */
+const cloneDataList = (data: DataItem[]): DataItem[] => {
+  return data.map(item => {
+    const copy = { ...item }
+
+    if (typeof copy.create_time === 'string') {
+      const timestamp = new Date(copy.create_time.replace(/-/g, '/')).getTime()
+      if (!Number.isNaN(timestamp)) copy.create_time = timestamp
+    }
+
+    return copy
+  })
+}
+
+/** 按指定字段排序；没有传 sort 时保持 JSON 原有顺序。 */
+const dataSort = (sort: SortType | undefined, arr: DataItem[]): DataItem[] => {
+  if (!sort) return arr
+
+  return arr.sort((a, b) => {
+    switch (sort) {
+      case 'sortAsc':
+        return Number(a.sort || 0) - Number(b.sort || 0)
+      case 'sortDesc':
+        return Number(b.sort || 0) - Number(a.sort || 0)
+      case 'timeAsc':
+        return Number(a.create_time || 0) - Number(b.create_time || 0)
+      case 'timeDesc':
+        return Number(b.create_time || 0) - Number(a.create_time || 0)
+      default:
+        return 0
+    }
+  })
+}
+
+/**
+ * 数据列表处理。
+ *
+ * 保持 requestData(api, params) 的调用方式不变，支持栏目、分类、类型、搜索、
+ * 动态字段、排序、分页和详情上下条筛选，并为结果补充分类层级信息。
+ */
+const filterDataList = (
   api: string,
-  data: paramsConfig | null = null
+  condition: ParamsConfig,
+  data: DataItem[],
+  cateJson: DataItem[]
 ) => {
-	var result
-	if (data && data.method == 'session') result = window.sessionStorage.getItem(api) || jsonArr[api]
-	else result = jsonArr[api]
-	return result
+  const data_type = condition.data_type || 'page'
+  const page = condition.page || 1
+  const limit = condition.limit || 10
+  const category_id = condition.category_id
+  const id = condition.id
+  const sort = condition.sort
+  const type = condition.type
+  const column_id = condition.column_id
+  const list_type = condition.list_type || 'alone'
+  const search_name = condition.search_name
+  const search_fields = Array.isArray(condition.search_fields) ? condition.search_fields : null
+  const exact_search = condition.exact_search || false
+  const search_to_lowerCase = condition.search_to_lowerCase || false
+  const search_in_intro_detail = condition.search_in_intro_detail || false
+  let newData = cloneDataList(data)
+  let total = newData.length
+  let last_page = Math.ceil(total / limit)
+  let up: DataItem | null = null
+  let down: DataItem | null = null
+
+  // 栏目id筛选
+  if (column_id) {
+    newData = newData.filter((item: any) => item.column_id == column_id)
+  }
+
+  // 置顶数据优先，两组内部再应用用户指定的排序方式。
+  const topList = dataSort(sort, newData.filter((item: DataItem) => item.is_top == 1))
+  const dataList = dataSort(sort, newData.filter((item: DataItem) => item.is_top != 1))
+  if (topList.length || dataList.length) newData = topList.concat(dataList)
+  else newData = dataSort(sort, newData)
+
+  if (category_id && list_type == 'alone') {
+    newData = newData.filter((item: DataItem) => {
+      if (api == 'category' || api == 'navigation' || api == 'nav' || type == 'navigation') {
+        return hasIdIntersection(item.pid, category_id)
+      }
+
+      // 例如数据为 "a,b,c"，用户传入 "b" 时也能正确命中。
+      return hasIdIntersection(item.category_id, category_id)
+    })
+  }
+  if (category_id && (list_type == 'all' || list_type == 'children')) {
+    let type_category = condition.type || api
+    if (api == 'category' || type == 'navigation') type_category = type || ''
+    if (api == 'navigation' || api == 'nav') type_category = 'navigation'
+
+    // 分类树使用独立副本，避免 children 字段写回原始 category.json。
+    let cateList = cloneDataList(cateJson)
+    if (column_id) cateList = cateList.filter(item => item.column_id == column_id)
+    if (type_category) cateList = cateList.filter(item => item.type == type_category)
+    cateList = dataSort(sort, cateList)
+
+    const childrenByPid = new Map<string, DataItem[]>()
+    cateList.forEach(item => {
+      const pid = String(item.pid ?? '')
+      const children = childrenByPid.get(pid) || []
+      children.push(item)
+      childrenByPid.set(pid, children)
+    })
+
+    // 用 visited 防止异常分类数据形成循环引用后无限递归。
+    const childTree = (pid: string, nested: boolean, visited = new Set<string>()): DataItem[] => {
+      if (visited.has(pid)) return []
+
+      const nextVisited = new Set(visited)
+      nextVisited.add(pid)
+      const children = childrenByPid.get(pid) || []
+
+      if (nested) {
+        return children.map(item => ({
+          ...item,
+          children: childTree(String(item.id), true, nextVisited)
+        }))
+      }
+
+      return children.flatMap(item => [
+        item,
+        ...childTree(String(item.id), false, nextVisited)
+      ])
+    }
+
+    const rootIds = splitIds(category_id)
+    const rootIdSet = new Set(rootIds)
+    const rootCategories = cateList.filter(item => rootIdSet.has(String(item.id)))
+    const descendantCategories = rootIds.flatMap(rootId => childTree(rootId, false))
+    const matchedCategories = list_type == 'children'
+      ? descendantCategories
+      : rootCategories.concat(descendantCategories)
+    const matchedCategoryIds = new Set(matchedCategories.map(item => String(item.id)))
+
+    if (api == 'category' || api == 'navigation' || api == 'nav' || type == 'navigation') {
+      newData = list_type == 'children'
+        ? rootIds.flatMap(rootId => childTree(rootId, true))
+        : matchedCategories
+    } else {
+      newData = newData.filter(item => {
+        return splitIds(item.category_id).some(itemCategoryId => matchedCategoryIds.has(itemCategoryId))
+      })
+    }
+  }
+  if (type) {
+    newData = newData.filter(item => item.type == type)
+  }
+  if (search_name) {
+    const fieldList: string[] = search_fields?.length
+      ? search_fields
+      : search_in_intro_detail
+        ? ['title', 'intro', 'details']
+        : ['title']
+
+    newData = newData.filter(item => matchSearchKeywordByFields(item, search_name, fieldList, exact_search, search_to_lowerCase))
+  }
+  if (id) {
+    const currentIndex = newData.findIndex(item => item.id == id)
+
+    if (currentIndex >= 0) {
+      up = currentIndex > 0 ? newData[currentIndex - 1] : null
+      down = currentIndex < newData.length - 1 ? newData[currentIndex + 1] : null
+      newData = [newData[currentIndex]]
+    } else {
+      newData = []
+    }
+
+  }
+
+  // 自动按字段过滤：除上述保留字外，condition 上传啥字段就按啥精确匹配（item[key] == condition[key]）
+  // 让 requestData 支持 isIndex: true / isNav: true / recommend: true 这类布尔筛选，不用每次新增字段都改这里
+  const RESERVED_KEYS = new Set([
+    'data_type', 'page', 'limit', 'sort', 'list_type', 'type',
+    'column_id', 'category_id', 'id', 'search_name',
+    'search_fields', 'exact_search', 'search_to_lowerCase', 'search_in_intro_detail',
+    'browse', 'method'
+  ])
+  Object.keys(condition).forEach(key => {
+    if (RESERVED_KEYS.has(key)) return
+    const expectedValue = condition[key]
+    if (expectedValue === undefined || expectedValue === null) return
+
+    const sourceHasField = data.some(item => key in item)
+    newData = newData.filter(item => item[key] == expectedValue)
+
+    if (!sourceHasField) {
+      console.warn(`[requestData] 参数 "${key}" 在 ${api}.json 中不存在，可能是字段名写错了`)
+    }
+  })
+
+  total = newData.length
+  last_page = limit > -1 ? Math.ceil(total / limit) : 1;
+  if (limit > -1) newData = newData.slice((page - 1) * limit, limit * page)
+
+  if (api != 'category' && api != 'navigation' && api != 'nav' && type != 'navigation') {
+    let cateLists = cloneDataList(cateJson)
+    if (column_id) cateLists = cateLists.filter(item => item.column_id == column_id)
+    cateLists = dataSort(sort, cateLists)
+
+    const categoryById = new Map(cateLists.map(item => [String(item.id), item]))
+
+    // 从当前分类向上查找父分类，并为根分类到当前分类计算 level。
+    const getCategoryPath = (category: DataItem): DataItem[] => {
+      const path: DataItem[] = []
+      const visited = new Set<string>()
+      let current: DataItem | undefined = category
+
+      while (current) {
+        const currentId = String(current.id)
+        if (visited.has(currentId)) break
+
+        visited.add(currentId)
+        path.push({ ...current })
+        current = categoryById.get(String(current.pid))
+      }
+
+      const depth = path.length
+      return path.map((item, index) => ({ ...item, level: depth - index }))
+    }
+
+    newData = newData.map(item => {
+      const categoryMap = new Map<string, DataItem>()
+
+      // 一个条目属于多个分类时，每个 category_id 都补充对应分类链。
+      splitIds(item.category_id).forEach(itemCategoryId => {
+        const category = categoryById.get(itemCategoryId)
+        if (!category) return
+
+        getCategoryPath(category).forEach(categoryItem => {
+          const categoryItemId = String(categoryItem.id)
+          if (!categoryMap.has(categoryItemId)) {
+            categoryMap.set(categoryItemId, categoryItem)
+          }
+        })
+      })
+
+      if (!categoryMap.size) return item
+      return { ...item, category: Array.from(categoryMap.values()) }
+    })
+  }
+  if (data_type == 'page') {
+    return {
+      total,
+      last_page,
+      data: newData
+    }
+  }
+  if (data_type == 'list') {
+    return newData
+  }
+  if (data_type == 'show') {
+    return {
+      up,
+      down,
+      info: total > 0 ? newData[0] : {}
+    }
+  }
 }
-
-// 请求数据
-const ajaxData(api, data, async, waitCallBack, resultCallBack) {
-	if (!requestList.includes(api)) {
-		requestList.push(api)
-		$.ajax({
-			url: baseUrl + api + '.json?v=' + new Date().getTime(), async, dataType: 'json',
-			success: function (result) {
-				try {
-					if (data && data.method == 'session') window.sessionStorage.setItem(api, JSON.stringify(result))
-					else jsonArr[api] = JSON.stringify(result)
-				} catch (error) {
-					console.log(error)
-					jsonArr[api] = JSON.stringify(result)
-				}
-				if (resultCallBack) resultCallBack(result)
-				// 执行待请求的队列对应的api
-				requestWait.forEach((item, index) => {
-					waitCallBack(item)
-				})
-			}
-		})
-	} else {
-		// console.log('------ajaxData----------')
-	}
-}
-
-function responseData(api, data, response, callBack) {
-	// if (api == 'site') console.log(api, data, response, callBack, requestWait)
-	if (!data) {
-		callBack(response)
-	} else {
-		var dataInfo = filterDataList(api, data, response)
-		callBack(dataInfo)
-	}
-}
-
-var DEFAULT_PRODUCT_SEARCH_FIELDS = ['title', 'casNo', 'productNo', 'abbrName', 'keywords', 'webKey', 'webDesc', 'intro', 'searchText']
-
-function getDefaultProductSearchFields() {
-	return DEFAULT_PRODUCT_SEARCH_FIELDS.slice()
-}
-
-function normalizeSearchFieldValue(value, toLowerCase) {
-	if (value === undefined || value === null) return ''
-	if (Array.isArray(value)) {
-		value = value.map(item => {
-			if (item === undefined || item === null) return ''
-			if (typeof item === 'object') return Object.values(item).join(' ')
-			return item
-		}).join(' ')
-	} else if (typeof value === 'object') {
-		value = Object.values(value).join(' ')
-	}
-	value = String(value).trim()
-	return toLowerCase ? value.toLowerCase() : value
-}
-
-function matchSearchFieldValue(value, keyword, exactSearch, toLowerCase) {
-	var source = normalizeSearchFieldValue(value, toLowerCase)
-	var target = normalizeSearchFieldValue(keyword, toLowerCase)
-	if (!source || !target) return false
-	return exactSearch ? source === target : source.includes(target)
-}
-
-function matchSearchKeywordByFields(item, keyword, fields, exactSearch, toLowerCase) {
-	if (!item || !Array.isArray(fields) || !fields.length) return false
-	return fields.some(field => matchSearchFieldValue(item[field], keyword, exactSearch, toLowerCase))
-}
-
-function getProductSearchSuggestions(list, keyword, limit) {
-	var searchKeyword = normalizeSearchFieldValue(keyword, true)
-	var sourceList = Array.isArray(list) ? list : []
-	var suggestionList = []
-	var fieldList = ['title', 'casNo', 'productNo', 'abbrName', 'keywords', 'intro']
-
-	if (!searchKeyword) return []
-
-	sourceList.forEach(item => {
-		fieldList.forEach(field => {
-			var value = normalizeSearchFieldValue(item && item[field], false)
-			if (!value) return
-			if (normalizeSearchFieldValue(value, true).includes(searchKeyword)) {
-				suggestionList.push(value)
-			}
-		})
-	})
-
-	return Array.from(new Set(suggestionList)).slice(0, limit || 10)
-}
-
-/**
- * 排序方法
- */
-function dataSort(sort, arr) {
-	if (sort) {
-		arr.sort(function (a, b) {
-			//a,b表示相邻的两个元素
-			//若返回值>0,数组元素将按升序排列
-			//若返回值<0,数组元素将按降序排列
-			switch (sort) {
-				case 'sortAsc':
-					return a.sort - b.sort
-				case 'sortDesc':
-					return b.sort - a.sort
-				case 'timeAsc':
-					return a.create_time - b.create_time
-				case 'timeDesc':
-					return b.create_time - a.create_time
-			}
-		})
-	}
-	return arr
-}
-
-/**
- * 数据列表处理
- */
-function filterDataList(api, condition, data) {
-	var data_type = condition.data_type || 'page';
-	var page = condition.page || 1
-	var limit = condition.limit || 10
-	var category_id = condition.category_id
-	var id = condition.id
-	var sort = condition.sort
-	var type = condition.type
-	var column_id = condition.column_id
-	var list_type = condition.list_type || 'alone'
-	var search_name = condition.search_name
-	var search_fields = Array.isArray(condition.search_fields) ? condition.search_fields : null
-	// 是否启用精确搜索
-	var exact_search = condition.exact_search || false
-	var newData = data
-	var total = data.length
-	var last_page = Math.ceil(total / limit)
-	var up, down
-	var search_to_lowerCase = condition.search_to_lowerCase || false // 是否开启大小写转换
-	var search_in_intro_detail = condition.search_in_intro_detail || false // 是否开启从简介和详情中搜索
-
-	// 栏目id筛选
-	if (column_id) {
-		newData = newData.filter(item => item.column_id == column_id)
-	}
-
-	// 日期处理
-	newData.forEach(item => {
-		try { item.create_time = new Date(item.create_time.replace(/-/g, '/')).getTime() }
-		catch (e) { }
-	})
-
-	// 指定数据处理
-	var topList = newData.filter(item => item.is_top == 1)
-	topList = dataSort(sort, topList)
-	var dataList = newData.filter(item => item.is_top != 1)
-	dataList = dataSort(sort, dataList)
-	if (topList.length || dataList.length) newData = topList.concat(dataList)
-	else newData = dataSort(sort, newData)
-
-	if (category_id && list_type == 'alone') {
-		newData = newData.filter(item => {
-			if (api == 'category' || api == 'navigation' || type == 'navigation') {
-				return item.pid == category_id
-			} else {
-				// return item.category_id == category_id
-				return item.category_id.split(',').some(item => category_id.split(',').includes(item))
-			}
-		})
-	}
-	if (category_id && (list_type == 'all' || list_type == 'children')) {
-		var cateList = [], cateList_ = [];
-
-		var type_category = condition.type || api
-		if (api == 'category' || type == 'navigation') type_category = type
-		if (api == 'navigation') type_category = 'navigation'
-
-		cateList = filterDataList('category', { type: type_category, column_id, sort: sort, limit: -1, data_type: 'list' }, cateJson)
-		// if(api === 'navigation') console.log(cateList, 'cateList')
-		cateList_ = cateList.filter(item => {
-			return item.id == category_id
-		})
-		if (list_type == 'children' && cateList_.length > 0) {
-			cateList_ = childTree(cateList_[0].id)
-		} else {
-			cateList_ = cateList_.concat(childTree(category_id))
-		}
-		if (api == 'category' || api == 'navigation' || type == 'navigation') {
-			newData = cateList_
-		} else {
-			newData = newData.filter(item => {
-				return cateList_.find(prop => {
-					// return prop.id == item.category_id
-					return item.category_id && item.category_id.split(',').some(item_ => prop.id.includes(item_))
-				})
-			})
-		}
-
-		// 递归获取子分类
-		function childTree(pid) {
-			var tree = []
-			var list = cateList.filter(item => {
-				return item.pid == pid
-			})
-			if (list && list.length > 0) {
-				if (list_type == 'children') {
-					tree = list.map(item => {
-						item.children = childTree(item.id)
-						return item
-					})
-				} else {
-					tree = tree.concat(list)
-					list.forEach(item => {
-						tree = tree.concat(childTree(item.id))
-					})
-				}
-			}
-			return tree
-		}
-	}
-	if (type) {
-		newData = newData.filter(item => item.type == type)
-	}
-	if (search_name) {
-		var fieldList = search_fields
-		if (!fieldList || !fieldList.length) {
-			fieldList = ['title']
-			if (search_in_intro_detail) fieldList = fieldList.concat(['intro', 'details'])
-		}
-		newData = newData.filter(item => matchSearchKeywordByFields(item, search_name, fieldList, exact_search, search_to_lowerCase))
-	}
-	if (id) {
-		newData = newData.filter((item, index, arr) => {
-			if (item.id == id) {
-				up = (index == 0) ? null : arr[index - 1]
-				down = (index == arr.length - 1) ? null : arr[index + 1]
-			}
-			return item.id == id
-		})
-		if (condition.browse) {
-			switch (type) {//goods产品、content文章、product商品、text信息、 carousel轮播、 image图片
-				case 'content':
-				case 'goods':
-				case 'product':
-				case 'text':
-				case 'carousel':
-				case 'image':
-					// 浏览量记录
-					jQuery.post('https://jzt2.china9.cn/api/readnum/addRead', { id: id, type: api }, function (e) {
-
-					});
-					break;
-			}
-		}
-	}
-
-	// 自动按字段过滤：除上述保留字外，condition 上传啥字段就按啥精确匹配（item[key] == condition[key]）
-	// 让 requestData 支持 isIndex: true / isNav: true / recommend: true 这类布尔筛选，不用每次新增字段都改这里
-	var RESERVED_KEYS = new Set([
-		'data_type', 'page', 'limit', 'sort', 'list_type', 'type',
-		'column_id', 'category_id', 'id', 'search_name',
-		'search_fields', 'exact_search', 'search_to_lowerCase', 'search_in_intro_detail',
-		'browse', 'method'
-	])
-	Object.keys(condition).forEach(key => {
-		if (RESERVED_KEYS.has(key)) return
-		if (condition[key] === undefined || condition[key] === null) return
-		var before = newData.length
-		newData = newData.filter(item => item[key] == condition[key])
-		if (newData.length === 0 && before > 0 && data[0] && !(key in data[0])) {
-			console.warn(`[requestData] 参数 "${key}" 在 ${api} 数据中找不到匹配字段，可能字段名打错了`)
-		}
-	})
-
-	total = newData.length
-	last_page = limit > -1 ? Math.ceil(total / limit) : 1;
-	if (limit > -1) newData = newData.slice((page - 1) * limit, limit * page)
-
-	if (api != 'category' && api != 'navigation' && type != 'navigation') {
-		var cateLists = []
-		cateLists = filterDataList('category', { column_id, sort: sort, limit: -1, data_type: 'list' }, cateJson)
-		newData.forEach(item => {
-			if (item.category_id) {
-				var cateNew = cateLists.filter(items => item.category_id.split(',').includes(items.id))
-				if (cateNew.length > 0) {
-					var pCate = cateNew.concat(parentTree(cateNew[0].pid))
-					pCate.reverse().forEach((item_, index) => {
-						if (item_.pid == 0) {
-							item_.level = 1
-						} else if (index > 0) {
-							if (item_.pid == pCate[index - 1].pid) {
-								item_.level = pCate[index - 1].level
-							} else {
-								item_.level = pCate[index - 1].level + 1
-							}
-						}
-					})
-					item.category = Array.from(new Set(pCate.reverse()))
-				}
-			}
-		})
-
-		// 递归获取父分类
-		function parentTree(pid) {
-			var tree_ = []
-			var list_ = cateLists.filter(item => {
-				return item.id == pid
-			})
-			if (list_ && list_.length > 0) {
-				tree_ = tree_.concat(list_)
-				list_.forEach(item => {
-					tree_ = tree_.concat(parentTree(item.pid))
-				})
-			}
-			return tree_
-		}
-	}
-	if (data_type == 'page') {
-		return {
-			total,
-			last_page,
-			data: newData
-		}
-	}
-	if (data_type == 'list') {
-		return newData
-	}
-	if (data_type == 'show') {
-		return {
-			up,
-			down,
-			info: total > 0 ? newData[0] : {}
-		}
-	}
-}
-
-/**
- * 日期格式转换
- * @param {String} time 时间戳
- * @param {String} format 日期格式 例：Y-m-d h:i:s
- * Y-m-d h:i:s 转换为2021-09-01 12:30:30
- * m-d h:i:s 转换为09-01 12:30:30
- * m-d h:i 转换为09-01 12:30
- * Y年m月d日h时i分s秒 转换为2021年09月01日12时30分30秒
- */
-function timeStamp2String(time, format) {
-	const dateTime = new Date()
-	dateTime.setTime(time)
-	if (time.toString().length == 10) {
-		dateTime.setTime(time * 1000)
-	}
-	const year = dateTime.getFullYear()
-	const month = dateTime.getMonth() + 1 < 10 ? '0' + (dateTime.getMonth() + 1) : dateTime.getMonth() + 1
-	const date = dateTime.getDate() < 10 ? '0' + dateTime.getDate() : dateTime.getDate()
-	const hour = dateTime.getHours() < 10 ? '0' + dateTime.getHours() : dateTime.getHours()
-	const minute = dateTime.getMinutes() < 10 ? '0' + dateTime.getMinutes() : dateTime.getMinutes()
-	const second = dateTime.getSeconds() < 10 ? '0' + dateTime.getSeconds() : dateTime.getSeconds()
-	// 返回字符串格式
-	var dateInfo = ''
-	const yIndex = format.search('Y')
-	const mIndex = format.search('m')
-	const dIndex = format.search('d')
-	const hIndex = format.search('h')
-	const iIndex = format.search('i')
-	const sIndex = format.search('s')
-	dateInfo += `${str(year, yIndex)}`
-	dateInfo += `${str(month, mIndex)}`
-	dateInfo += `${str(date, dIndex)}`
-	dateInfo += `${str(hour, hIndex)}`
-	dateInfo += `${str(minute, iIndex)}`
-	dateInfo += `${str(second, sIndex)}`
-	return dateInfo
-
-	function str(number, index) {
-		if (index > -1) return `${number}${format.slice(index + 1, index + 2)}`
-		else return ''
-	}
-}
-
-//获取地址栏参数//可以是中文参数
-function getUrlParam(key) {
-	// 获取参数
-	var url = window.location.search;
-	// 正则筛选地址栏
-	var reg = new RegExp("(^|&)" + key + "=([^&]*)(&|$)");
-	// 匹配目标参数
-	var result = url.substr(1).match(reg);
-	//返回参数值
-	return result ? decodeURIComponent(result[2]) : null;
-}
-
-
-// 动态修改网站信息
-function changeWebInfo(siteInfo) {
-	/* 修改网站标题 */
-	document.title = siteInfo.title
-	/* 修改网站简介 */
-	var $desc = document.querySelector('meta[name="description"]');
-	if ($desc !== null) {
-		$desc.content = siteInfo.description;
-	} else {
-		$desc = document.createElement("meta");
-		$desc.name = "description";
-		$desc.content = siteInfo.description;
-		document.head.appendChild($desc);
-	}
-	/* 修改网站关键词 */
-	var $keywords = document.querySelector('meta[name="keywords"]');
-	if ($keywords !== null) {
-		$keywords.content = siteInfo.keywords;
-	} else {
-		$keywords = document.createElement("meta");
-		$keywords.name = "keywords";
-		$keywords.content = siteInfo.keywords;
-		document.head.appendChild($keywords);
-	}
-	/* 修改ico */
-	var $favicon = document.querySelector('link[rel="icon"]');
-	if ($favicon !== null) {
-		$favicon.href = siteInfo.icon;
-	} else {
-		$favicon = document.createElement("link");
-		$favicon.rel = "icon";
-		$favicon.href = siteInfo.icon;
-		document.head.appendChild($favicon);
-	}
-}
-
-function Base64() {
-	// private property
-	_keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-	// public method for encoding
-	this.encode = function (input) {
-		var output = "";
-		var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
-		var i = 0;
-		input = _utf8_encode(input);
-		while (i < input.length) {
-			chr1 = input.charCodeAt(i++);
-			chr2 = input.charCodeAt(i++);
-			chr3 = input.charCodeAt(i++);
-			enc1 = chr1 >> 2;
-			enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-			enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
-			enc4 = chr3 & 63;
-			if (isNaN(chr2)) {
-				enc3 = enc4 = 64;
-			} else if (isNaN(chr3)) {
-				enc4 = 64;
-			}
-			output = output +
-				_keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
-				_keyStr.charAt(enc3) + _keyStr.charAt(enc4);
-		}
-		return output;
-	}
-	// public method for decoding
-	this.decode = function (input) {
-		var output = "";
-		var chr1, chr2, chr3;
-		var enc1, enc2, enc3, enc4;
-		var i = 0;
-		input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
-		while (i < input.length) {
-			enc1 = _keyStr.indexOf(input.charAt(i++));
-			enc2 = _keyStr.indexOf(input.charAt(i++));
-			enc3 = _keyStr.indexOf(input.charAt(i++));
-			enc4 = _keyStr.indexOf(input.charAt(i++));
-			chr1 = (enc1 << 2) | (enc2 >> 4);
-			chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-			chr3 = ((enc3 & 3) << 6) | enc4;
-			output = output + String.fromCharCode(chr1);
-			if (enc3 != 64) {
-				output = output + String.fromCharCode(chr2);
-			}
-			if (enc4 != 64) {
-				output = output + String.fromCharCode(chr3);
-			}
-		}
-		output = _utf8_decode(output);
-		return output;
-	}
-	// private method for UTF-8 encoding
-	_utf8_encode = function (string) {
-		string = string.replace(/\r\n/g, "\n");
-		var utftext = "";
-		for (var n = 0; n < string.length; n++) {
-			var c = string.charCodeAt(n);
-			if (c < 128) {
-				utftext += String.fromCharCode(c);
-			} else if ((c > 127) && (c < 2048)) {
-				utftext += String.fromCharCode((c >> 6) | 192);
-				utftext += String.fromCharCode((c & 63) | 128);
-			} else {
-				utftext += String.fromCharCode((c >> 12) | 224);
-				utftext += String.fromCharCode(((c >> 6) & 63) | 128);
-				utftext += String.fromCharCode((c & 63) | 128);
-			}
-		}
-		return utftext;
-	}
-	// private method for UTF-8 decoding
-	_utf8_decode = function (utftext) {
-		var string = "";
-		var i = 0;
-		var c = c1 = c2 = 0;
-		while (i < utftext.length) {
-			c = utftext.charCodeAt(i);
-			if (c < 128) {
-				string += String.fromCharCode(c);
-				i++;
-			} else if ((c > 191) && (c < 224)) {
-				c2 = utftext.charCodeAt(i + 1);
-				string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
-				i += 2;
-			} else {
-				c2 = utftext.charCodeAt(i + 1);
-				c3 = utftext.charCodeAt(i + 2);
-				string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
-				i += 3;
-			}
-		}
-		return string;
-	}
-}
-
-// 获取访客真实 IP（公共：统计、留言等都用）；拿不到回调空串，调用方自行兜底
-function getRealIp(callBack) {
-	$.get('https://api.china9.cn/api/getRealIpAddr')
-		.done(function (res) {
-			callBack(res || '');
-		})
-		.fail(function (jqXHR, textStatus, errorThrown) {
-			console.error('Error occurred:', textStatus, errorThrown);
-			callBack('');
-		});
-}
-
-// 网站访问统计
-function statistics() {
-	var url = window.location.hostname;
-	let getP = { 'url': url }
-	getRealIp(function (ip) {
-		if (ip) getP.ip = ip;
-		jQuery.post('https://jzt2.china9.cn/api/statistics/submit', getP, function (e) {
-
-		});
-	});
-}
-
-statistics();
