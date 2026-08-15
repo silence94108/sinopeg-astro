@@ -44,7 +44,7 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 
 ## `requestData` 本地数据读取
 
-`requestData` 用于在 Astro 页面、布局或组件的构建阶段，读取 `src/lib/jsonDatas` 中的 JSON 数据，并完成筛选、排序、分页和详情上下条处理。
+`requestData` 用于在 Astro 页面、布局或组件的构建阶段，读取 `src/lib/jsonDatas` 中的 JSON 数据。不传筛选参数时可以读取数组或对象；传入筛选参数时可对列表数组完成筛选、排序、分页和详情上下条处理。
 
 它适合以下场景：
 
@@ -63,13 +63,18 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 ---
 import { requestData } from '../lib/utils'
 
-// 读取 src/lib/jsonDatas/news.json，不传筛选参数时返回原始数组
+// 读取 src/lib/jsonDatas/news.json，返回原始数组
 const allNews = requestData('news')
 
 // 读取 src/lib/jsonDatas/goods/list.json
 const allGoods = requestData('goods/list')
+
+// 读取 src/lib/jsonDatas/site.json，返回站点信息对象
+const siteInfo = requestData('site')
 ---
 ```
+
+`site.json` 这类顶层为对象的 JSON 只能直接读取，不能传入分页或筛选参数。
 
 ### 列表和分页
 

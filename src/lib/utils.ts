@@ -81,20 +81,21 @@ export function getJsonData<T = JsonData>(name: string): T {
 }
 
 /**
- * 读取指定列表 JSON，并根据 params 完成筛选、排序、分页或详情处理。
- * 不传 params 时直接返回原始列表数据。
+ * 读取指定 JSON，并根据 params 完成列表筛选、排序、分页或详情处理。
+ * 不传 params 时直接返回 JSON 原始数据，支持数组和对象。
  */
 export function requestData(
   api: string,
   params: ParamsConfig | null = null
 ) {
-  const source = getJsonData<DataItem[]>(api)
+  const source: any = getJsonData<JsonData>(api)
+
+  // site.json 这类单对象数据不需要筛选，直接返回原始内容。
+  if (!params) return source
 
   if (!Array.isArray(source)) {
-    throw new Error(`${api}.json 不是列表数据`)
+    throw new Error(`${api}.json 不是列表数据，不能使用筛选参数`)
   }
-
-  if (!params) return source
 
   // category.json 是分类树和分类名称补全的数据源；请求分类本身时直接复用 source。
   const cateJson = api === 'category'
