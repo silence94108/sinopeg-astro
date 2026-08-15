@@ -1,60 +1,103 @@
 ---
-const logoSrc = "/images/logo.png";
-const logoAlt = "Logo";
+import { requestData } from "../lib/utils";
 
-const menuList:any = [];   // 导航菜单
+const siteInfo = requestData("site");
+
+const logoSrc = (siteInfo && siteInfo.pc_logo) || "/images/logo.png";
+const logoAlt = (siteInfo && siteInfo.title) || "Logo";
+
+const menuList: any = requestData("nav", {
+  sort: "sortAsc",
+  data_type: "list",
+}); // 导航菜单
+
 const isProductNav = (item: any) => {
   if (!item) return false;
-  return item.name === "产品" || /project\.html/.test(item.link || "");
+  return item.title === "产品" || /project\.html/.test(item.link || "");
 };
 
-const categories:any = [];  // 产品分类
-const rootCategories:any = [];  // 产品分类
-const getChildren = (pid: any) => categories.filter((c: any) => c.pid === pid)
-const hasChildren = (id: any) => getChildren(id).length > 0
+const categories: any = []; // 产品分类
+const rootCategories: any = []; // 产品分类
+const getChildren = (pid: any) => categories.filter((c: any) => c.pid === pid);
+const hasChildren = (id: any) => getChildren(id).length > 0;
+
+const getListLink = (id: string, parentId: string, rootId: string = "") => {
+  let link = `prolist.html?category_id=${id}`;
+  if (parentId) link += `&parent_id=${parentId}`;
+  if (rootId) link += `&root_id=${rootId}`;
+  return link;
+};
+
+const pcSuggestion: any = [];
 ---
 
 <div class="header">
   <div class="inner">
     <div class="logo">
-      <h2><a href="/"><img src={logoSrc} alt={logoAlt}></a></h2>
+      <h2><a href="/"><img src={logoSrc} alt={logoAlt} /></a></h2>
     </div>
     <div class="header_right">
       <ul class="nav_list clearfix">
-        {menuList.map((item:any) => (
+        {
+          menuList.map((item: any) => (
             <li
               class="nav_item"
               @mouseenter="isProductNav(item) ? onMegaEnter($event) : null"
               @mouseleave="isProductNav(item) ? onMegaLeave($event) : null"
             >
               <a
-                href={item.link}
+                href={
+                  item.link && item.link.replace("./", "/").replace(".html", "")
+                }
                 class="nav_link"
-                target={item.target ? '_blank' : null}
-                rel={item.target ? 'noopener noreferrer nofollow' : null}
-              >{ item.name }</a>
+                target={item.target ? "_blank" : null}
+                rel={item.target ? "noopener noreferrer nofollow" : null}
+              >
+                {item.title}
+              </a>
               {isProductNav(item) && rootCategories.length > 0 && (
-                <div class="nav_mega"
+                <div
+                  class="nav_mega"
                   @mouseenter="onMegaEnter($event.currentTarget.closest('.nav_item'))"
                   @mouseleave="onMegaLeave($event.currentTarget.closest('.nav_item'))"
                 >
                   <div class="nav_mega_inner">
                     {rootCategories.map((root: any) => (
                       <div class="nav_mega_group">
-                        <a href={`/project/?category_id=${root.id}`} class="nav_mega_title">{ root.title }</a>
+                        <a
+                          href={`/project/?category_id=${root.id}`}
+                          class="nav_mega_title"
+                        >
+                          {root.title}
+                        </a>
                         {hasChildren(root.id) && (
                           <div class="nav_mega_children">
-                            <div class="nav_mega_child_group" v-for="child in getChildren(root.id)" :key="child.id">
-                              <a :href="getListLink(child.id, root.id)" class="nav_mega_child_title">{{ child.title }}</a>
-                              <div class="nav_mega_grand_list" v-if="hasChildren(child.id)">
+                            {getChildren(root.id).map((child: any) => (
+                              <div class="nav_mega_child_group">
                                 <a
-                                  v-for="grand in getChildren(child.id)"
-                                  :key="grand.id"
-                                  :href="getListLink(grand.id, child.id, root.id)"
-                                  class="nav_mega_grand_child"
-                                >{{ grand.title }}</a>
+                                  href={getListLink(child.id, root.id)}
+                                  class="nav_mega_child_title"
+                                >
+                                  {child.title}
+                                </a>
+                                {hasChildren(child.id) && (
+                                  <div class="nav_mega_grand_list">
+                                    {getChildren(child.id).map((grand: any) => (
+                                      <a
+                                        href={getListLink(
+                                          grand.id,
+                                          child.id,
+                                          root.id,
+                                        )}
+                                        class="nav_mega_grand_child"
+                                      >
+                                        {grand.title}
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -66,7 +109,7 @@ const hasChildren = (id: any) => getChildren(id).length > 0
           ))
         }
       </ul>
-      <!-- <a href="https://www.sinopeg.com/" class="en" target="_blank">
+      <a href="https://www.sinopeg.com/" class="en" target="_blank">
         <img src="images/en.png" />
       </a>
       <form class="header_form" @submit.prevent="submitSearch">
@@ -82,20 +125,26 @@ const hasChildren = (id: any) => getChildren(id).length > 0
           @blur="hidePcSuggestions"
         />
       </form>
-      <div class="laji" style="position: absolute; right: 0; top: 77%; width: 25%; border-radius: 10px;">
+      <div
+        class="laji"
+        style="position: absolute; right: 0; top: 77%; width: 25%; border-radius: 10px;"
+      >
         <ul
           id="search_list2"
-          v-show="pcSuggestionsVisible && pcSuggestions.length"
-          style="display: block; border: 1px solid #1459A8; background: #EBEBEB; padding: 20px; border-radius: 10px;"
+          style="display: none; border: 1px solid #1459A8; background: #EBEBEB; padding: 20px; border-radius: 10px;"
         >
-          <li
-            v-for="item in pcSuggestions"
-            :key="'pc-' + item"
-            style="font-size: 14px; cursor: pointer;"
-            @mousedown.prevent="selectSuggestion(item)"
-          >{{ item }}</li>
+          {
+            pcSuggestion.map((item: any) => (
+              <li
+                style="font-size: 14px; cursor: pointer;"
+                @mousedown.prevent="selectSuggestion(item)"
+              >
+                {item}
+              </li>
+            ))
+          }
         </ul>
-      </div> -->
+      </div>
     </div>
   </div>
 </div>
