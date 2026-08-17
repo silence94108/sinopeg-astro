@@ -5,6 +5,7 @@ const siteInfo = requestData("site");
 
 const logoSrc = (siteInfo && siteInfo.pc_logo) || "/images/logo.png";
 const logoAlt = (siteInfo && siteInfo.title) || "Logo";
+const searchPath = `${import.meta.env.BASE_URL}search.html`;
 
 const menuList: any = requestData("nav", {
   sort: "sortAsc",
@@ -35,7 +36,6 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
   return link;
 };
 
-const pcSuggestion: any = [];
 ---
 
 <div class="header">
@@ -119,17 +119,18 @@ const pcSuggestion: any = [];
       <a href="https://www.sinopeg.com/" class="en" target="_blank">
         <img src="images/en.png" />
       </a>
-      <form class="header_form" @submit.prevent="submitSearch">
-        <input type="button" class="header_form_btu" @click="submitSearch" />
+      <!-- Header 和 Banner 使用同一套产品搜索逻辑，表单本身保留原生 GET 兜底。 -->
+      <form class="header_form" action={searchPath} method="get" data-header-search-form>
+        <input type="submit" value="" class="header_form_btu" aria-label="搜索" />
         <input
           type="text"
+          name="key"
           class="header_form_input"
           autocomplete="off"
-          v-model="keyword"
           placeholder="关键词搜索"
-          @input="updatePcSuggestions"
-          @focus="updatePcSuggestions"
-          @blur="hidePcSuggestions"
+          aria-controls="search_list2"
+          aria-expanded="false"
+          data-header-search-input
         />
       </form>
       <div
@@ -138,19 +139,10 @@ const pcSuggestion: any = [];
       >
         <ul
           id="search_list2"
-          style="display: none; border: 1px solid #1459A8; background: #EBEBEB; padding: 20px; border-radius: 10px;"
-        >
-          {
-            pcSuggestion.map((item: any) => (
-              <li
-                style="font-size: 14px; cursor: pointer;"
-                @mousedown.prevent="selectSuggestion(item)"
-              >
-                {item}
-              </li>
-            ))
-          }
-        </ul>
+          hidden
+          style="border: 1px solid #1459A8; background: #EBEBEB; padding: 20px; border-radius: 10px;"
+          data-header-search-list
+        ></ul>
       </div>
     </div>
   </div>
@@ -252,3 +244,14 @@ const pcSuggestion: any = [];
     </ul>
   </div>
 </div> -->
+
+<script>
+  import { initProductSearch } from '../scripts/productSearch';
+
+  // Header 只提供自己的 DOM 选择器，具体搜索行为由公共模块统一处理。
+  initProductSearch({
+    form: '[data-header-search-form]',
+    input: '[data-header-search-input]',
+    list: '[data-header-search-list]',
+  });
+</script>
