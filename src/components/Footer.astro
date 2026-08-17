@@ -70,7 +70,6 @@ const footerSocialList: any = () => {
       image: item.bg_img || ""
     }));
 }
-console.log(footerSocialList())
 
 const recordData = requestData("contact", {
   data_type: "list",
@@ -78,6 +77,17 @@ const recordData = requestData("contact", {
   limit: -1
 })
 const recordInfo = recordData && recordData[0]
+
+let phoneItem: any = {};
+let emailItem: any = {};
+const list = requestData("contact", {
+  data_type: "list",
+  category_id: FU_CATEGORY_ID,
+  sort: "sortAsc",
+  limit: -1
+});
+phoneItem = list.find((x: any) => x.title === "电话") || list[0] || {};
+emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
 ---
 <div>
   <div class="footer footer1">
@@ -139,25 +149,29 @@ const recordInfo = recordData && recordData[0]
     <span class="small" set:html={recordInfo.details}></span>
   </div>
   <div class="fu">
-    <div class="fu_box fu_liu" @click="openLiu">
+    <div class="fu_box fu_liu" onclick="openLiu">
       <img src="images/fu4.png" />
     </div>
     <div class="fu_box pc1">
       <img src="images/fu1.png" />
-      <div class="fu_info" v-if="phoneItem.details" v-html="phoneItem.details"></div>
+      {phoneItem && phoneItem.details && (
+        <div class="fu_info" set:html={phoneItem.details}></div>
+      )}
     </div>
     <div class="fu_box sp">
       <a :href="phoneTel ? 'tel:' + phoneTel : 'javascript:;'"><img src="images/fu1.png" /></a>
     </div>
     <div class="fu_box">
       <img src="images/fu2.png" />
-      <div class="fu_info" v-if="emailItem.details" v-html="emailItem.details"></div>
+      {emailItem && emailItem.details && (
+        <div class="fu_info" set:html={emailItem.details}></div>
+      )}
     </div>
-    <div class="fu_box fu_box2 top" @click="backTop">
+    <div class="fu_box fu_box2 top" onclick="backTop">
       <img src="images/fu3.png" />
       <span>TOP</span>
     </div>
-    <div class="fu_box1 fu_box top" @click="backTop">
+    <div class="fu_box1 fu_box top" onclick="backTop">
       <img src="images/fu5.png" />
       <span>TOP</span>
     </div>
