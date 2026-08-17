@@ -1,3 +1,5 @@
+import $ from 'jquery'
+
 /**
  * 搜索索引中的单条产品数据。
  * 这些字段由 /search-index.json 提供，Header 和 Banner 共用同一份数据。
@@ -19,7 +21,7 @@ type ProductSearchOptions = {
   /** 候选词列表选择器。 */
   list: string;
   /** 查询元素的范围，默认从整个 document 中查找。 */
-  root?: ParentNode;
+  root?: Document | Element;
   /** 搜索索引地址，默认使用当前 Astro 项目的 base 路径。 */
   endpoint?: string;
   /** 最多显示多少条候选词。 */
@@ -122,55 +124,60 @@ export const initProductSearch = ({
   debounceDelay = 200,
   blurDelay = 120
 }: ProductSearchOptions) => {
-  const form = root.querySelector<HTMLFormElement>(formSelector)
-  const input = root.querySelector<HTMLInputElement>(inputSelector)
-  const list = root.querySelector<HTMLUListElement>(listSelector)
+  // 使用 jQuery 在指定范围内查找三个搜索元素。
+  const $form = $(formSelector, root).first()
+  const $input = $(inputSelector, root).first()
+  const $list = $(listSelector, root).first()
 
   // 某个组件没有渲染完整搜索结构时直接结束，避免影响页面其他功能。
-  if (!form || !input || !list) return
+  if (!$form.length || !$input.length || !$list.length) return
+
+  const inputElement = $input.get(0) as HTMLInputElement
 
   let debounceTimer: number | undefined
   let hideTimer: number | undefined
   let requestVersion = 0
 
   const hideSuggestions = () => {
-    list.hidden = true
-    input.setAttribute('aria-expanded', 'false')
+    $list.prop('hidden', true)
+    $input.attr('aria-expanded', 'false')
   }
 
-  /** 使用 textContent 创建候选项，避免把产品文字当成 HTML 执行。 */
+  /** 使用 jQuery 的 text() 创建候选项，避免把产品文字当成 HTML 执行。 */
   const renderSuggestions = (suggestions: string[]) => {
-    list.replaceChildren()
+    $list.empty()
 
     for (const suggestion of suggestions) {
-      const item = document.createElement('li')
-      item.textContent = suggestion
-      item.style.fontSize = '14px'
-      item.style.cursor = 'pointer'
+      const $item = $('<li>')
+        .text(suggestion)
+        .css({
+          fontSize: '14px',
+          cursor: 'pointer'
+        })
 
       // mousedown 早于 input 的 blur，能够先完成回填再隐藏列表。
-      item.addEventListener('mousedown', event => {
+      $item.on('mousedown', event => {
         event.preventDefault()
-        input.value = suggestion
+        $input.val(suggestion)
         hideSuggestions()
       })
 
-      list.append(item)
+      $list.append($item)
     }
 
     const hasSuggestions = suggestions.length > 0
-    list.hidden = !hasSuggestions
-    input.setAttribute('aria-expanded', String(hasSuggestions))
+    $list.prop('hidden', !hasSuggestions)
+    $input.attr('aria-expanded', String(hasSuggestions))
   }
 
   const updateSuggestions = async () => {
-    const keyword = input.value.trim()
+    const keyword = normalizeText($input.val())
 
     // 每次搜索都生成一个新版本号，用来丢弃较慢的旧请求结果。
     const currentVersion = ++requestVersion
 
     if (!keyword) {
-      list.replaceChildren()
+      $list.empty()
       hideSuggestions()
       return
     }
@@ -178,9 +185,9 @@ export const initProductSearch = ({
     try {
       const searchIndex = await loadSearchIndex(endpoint)
 
-      const keywordChanged = input.value.trim() !== keyword
+      const keywordChanged = normalizeText($input.val()) !== keyword
       const isOldRequest = currentVersion !== requestVersion
-      const inputLostFocus = document.activeElement !== input
+      const inputLostFocus = document.activeElement !== inputElement
 
       if (keywordChanged || isOldRequest || inputLostFocus) return
 
@@ -198,14 +205,18 @@ export const initProductSearch = ({
     }, debounceDelay)
   }
 
-  input.addEventListener('input', scheduleSuggestions)
+  // 先清理同命名空间的旧事件，避免组件重复初始化时绑定多次。
+  $input.off('.productSearch')
+  $form.off('.productSearch')
 
-  input.addEventListener('focus', () => {
+  $input.on('input.productSearch', scheduleSuggestions)
+
+  $input.on('focus.productSearch', () => {
     window.clearTimeout(hideTimer)
     void updateSuggestions()
   })
 
-  input.addEventListener('blur', () => {
+  $input.on('blur.productSearch', () => {
     window.clearTimeout(debounceTimer)
     hideTimer = window.setTimeout(() => {
       requestVersion++
@@ -214,11 +225,11 @@ export const initProductSearch = ({
   })
 
   // 表单自身使用 GET 跳转，这里只负责拦截空关键词。
-  form.addEventListener('submit', event => {
-    if (input.value.trim()) return
+  $form.on('submit.productSearch', event => {
+    if (normalizeText($input.val())) return
 
     event.preventDefault()
     window.alert('请输入查询的关键词')
-    input.focus()
+    $input.trigger('focus')
   })
 }
