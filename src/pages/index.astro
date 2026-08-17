@@ -1,14 +1,71 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HomeBanner from '../components/HomeBanner.astro';
+import { requestData } from '../lib/utils';
 
 const tdk = {
   title: '首页 - 厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商',
   description: '聚乙二醇衍生物, peg化脂质, LNP递送, siRNA靶向修饰,嵌段共聚物, 药物递送系统(DDS)',
   keywords: '厦门赛诺邦格生物科技股份有限公司专注于药物递送系统（DDS）及高端医用材料研发，提供聚乙二醇衍生物（单/多分散）、peg化脂质、LNP递送等产品，应用于mRNA疫苗、小核酸药物、长效蛋白药及基因治疗领域。'
 }
+
+// 产品中心
+const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a";
+const goodsCategories = requestData("category", {
+	data_type: "list",
+	limit: 8,
+	sort: "sortAsc",
+	type: "goods",
+	category_id: PRODUCT_PARENT_ID,
+	isIndex: false
+})
+const proListClass = () => {
+	const base = goodsCategories.length;
+	console.log(base);
+	const total = (base === 5 || base === 7) ? base + 1 : base;
+	if (total === 4 || total === 7 || total === 8) return "index_pro_list1";
+	if (total === 3 || total === 5 || total === 6) return "index_pro_list2";
+	return "";
+}
+
+
+const ABOUT_INFO_ID = "6a1e75a110b5fc178d494b8b";
+const COOPERATION_CATEGORY_ID = "6a22243737509051865330ed";
 ---
 
 <BaseLayout tdk={tdk}>
 	<HomeBanner />
+	<!-- 产品中心 -->
+	<div class="index_pro">
+		<div class="inner">
+			<div class="index_pro_title">
+				<span class="index_pro_en">Products</span>
+				<h2 class="index_pro_zh">产品中心</h2>
+			</div>
+			<ul class={`index_pro_list clearfix ${proListClass()}`}>
+				{goodsCategories.map((item: any) => (
+					<li class="index_pro_item">
+						<a href={`project.html?category_id=${item.id}`} class="index_pro_link">
+							<div class="index_pro_photo"><img src={item.image_intro || 'images/g2.png'} alt="item.title" /></div>
+							<h3 class="index_pro_name">{ item.title }</h3>
+						</a>
+					</li>
+				))}
+				{goodsCategories.length === 5 || goodsCategories.length === 7 && (
+					<li class="index_pro_item">
+						<a href="#" class="index_pro_link">
+							<div class="index_pro_photo"><img src="images/g2.png" alt="产品研发中" /></div>
+							<h3 class="index_pro_name">产品研发中...</h3>
+						</a>
+					</li>
+				)}
+				{!goodsCategories.length && (<li class="jzt2-empty">暂无产品分类</li>)}
+			</ul>
+			<a href="project.html" class="index_pro_more">
+				<span>查看更多</span>
+				<img src="images/jian4.png" class="index_pro_show" />
+				<img src="images/jian2.png" class="index_pro_hide" />
+			</a>
+		</div>
+	</div>
 </BaseLayout>
