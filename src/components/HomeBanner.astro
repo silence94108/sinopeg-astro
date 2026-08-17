@@ -36,6 +36,7 @@ const searchPath = `${import.meta.env.BASE_URL}search.html`;
   </div>
   <div class="banner_box">
     <span class="banner_title">{bannerList[0] && bannerList[0].title}</span>
+    <!-- 使用 GET 表单作为兜底：即使 JavaScript 没加载，也会携带 key 跳转。 -->
     <form class="banner_form" action={searchPath} method="get" data-banner-search-form>
       <input
         type="text"
@@ -50,6 +51,7 @@ const searchPath = `${import.meta.env.BASE_URL}search.html`;
       <input type="submit" value="" class="banner_form_btu" aria-label="搜索" />
     </form>
     <div class="serach_area">
+      <!-- 候选词由 productSearch.ts 动态创建，初始状态先隐藏。 -->
       <ul
         id="search_list"
         hidden
@@ -64,50 +66,11 @@ const searchPath = `${import.meta.env.BASE_URL}search.html`;
 <script>
   import Swiper from 'swiper';
   import { Navigation, Autoplay } from 'swiper/modules';
+  import { initProductSearch } from '../scripts/productSearch';
   import 'swiper/css';
   import 'swiper/css/navigation';
 
-  type SearchIndexItem = {
-    title: string;
-    casNo: string;
-    productNo: string;
-    abbrName: string;
-    keywords: string;
-    intro: string;
-  };
-
-  const suggestionFields: (keyof SearchIndexItem)[] = [
-    'title',
-    'casNo',
-    'productNo',
-    'abbrName',
-    'keywords',
-    'intro',
-  ];
-
-  const normalizeText = (value: unknown) => String(value ?? '').trim();
-
-  const getSuggestions = (items: SearchIndexItem[], keyword: string, limit = 10) => {
-    const searchKeyword = normalizeText(keyword).toLowerCase();
-    const suggestions: string[] = [];
-    const seen = new Set<string>();
-
-    if (!searchKeyword) return suggestions;
-
-    for (const item of items) {
-      for (const field of suggestionFields) {
-        const value = normalizeText(item[field]);
-        if (!value || !value.toLowerCase().includes(searchKeyword) || seen.has(value)) continue;
-
-        seen.add(value);
-        suggestions.push(value);
-        if (suggestions.length >= limit) return suggestions;
-      }
-    }
-
-    return suggestions;
-  };
-
+  // Banner 轮播图初始化，与搜索功能互不影响。
   const slideCount = document.querySelectorAll('.swiper-container1 .swiper-slide').length;
 
   new Swiper('.swiper-container1', {
@@ -122,100 +85,10 @@ const searchPath = `${import.meta.env.BASE_URL}search.html`;
     },
   });
 
-  const searchForm = document.querySelector<HTMLFormElement>('[data-banner-search-form]');
-  const searchInput = document.querySelector<HTMLInputElement>('[data-banner-search-input]');
-  const searchList = document.querySelector<HTMLUListElement>('[data-banner-search-list]');
-
-  if (searchForm && searchInput && searchList) {
-    let searchIndexPromise: Promise<SearchIndexItem[]> | null = null;
-    let debounceTimer: number | undefined;
-    let hideTimer: number | undefined;
-    let requestVersion = 0;
-
-    const hideSuggestions = () => {
-      searchList.hidden = true;
-      searchInput.setAttribute('aria-expanded', 'false');
-    };
-
-    const loadSearchIndex = () => {
-      if (!searchIndexPromise) {
-        const endpoint = `${import.meta.env.BASE_URL}search-index.json`;
-        searchIndexPromise = fetch(endpoint)
-          .then(response => {
-            if (!response.ok) throw new Error(`搜索索引加载失败：${response.status}`);
-            return response.json();
-          })
-          .then(data => Array.isArray(data) ? data as SearchIndexItem[] : [])
-          .catch(error => {
-            searchIndexPromise = null;
-            throw error;
-          });
-      }
-
-      return searchIndexPromise;
-    };
-
-    const renderSuggestions = (suggestions: string[]) => {
-      searchList.replaceChildren();
-
-      for (const suggestion of suggestions) {
-        const item = document.createElement('li');
-        item.textContent = suggestion;
-        item.style.fontSize = '14px';
-        item.style.cursor = 'pointer';
-        item.addEventListener('mousedown', event => {
-          event.preventDefault();
-          searchInput.value = suggestion;
-          hideSuggestions();
-        });
-        searchList.append(item);
-      }
-
-      searchList.hidden = suggestions.length === 0;
-      searchInput.setAttribute('aria-expanded', String(suggestions.length > 0));
-    };
-
-    const updateSuggestions = async () => {
-      const keyword = searchInput.value.trim();
-      const currentVersion = ++requestVersion;
-
-      if (!keyword) {
-        searchList.replaceChildren();
-        hideSuggestions();
-        return;
-      }
-
-      try {
-        const searchIndex = await loadSearchIndex();
-        if (currentVersion !== requestVersion || searchInput.value.trim() !== keyword) return;
-        renderSuggestions(getSuggestions(searchIndex, keyword));
-      } catch {
-        if (currentVersion === requestVersion) hideSuggestions();
-      }
-    };
-
-    const scheduleSuggestions = () => {
-      window.clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(updateSuggestions, 200);
-    };
-
-    searchInput.addEventListener('input', scheduleSuggestions);
-    searchInput.addEventListener('focus', () => {
-      window.clearTimeout(hideTimer);
-      void updateSuggestions();
-    });
-    searchInput.addEventListener('blur', () => {
-      hideTimer = window.setTimeout(() => {
-        requestVersion++;
-        hideSuggestions();
-      }, 120);
-    });
-
-    searchForm.addEventListener('submit', event => {
-      if (searchInput.value.trim()) return;
-      event.preventDefault();
-      window.alert('请输入查询的关键词');
-      searchInput.focus();
-    });
-  }
+  // 将 Banner 自己的三个元素交给公共搜索模块处理。
+  initProductSearch({
+    form: '[data-banner-search-form]',
+    input: '[data-banner-search-input]',
+    list: '[data-banner-search-list]',
+  });
 </script>
