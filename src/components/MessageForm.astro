@@ -1,0 +1,114 @@
+---
+
+const { layout, caption } = Astro.props;
+---
+{layout === 'inline' ? (
+  <form
+    class="con_section clearfix"
+  >
+    <div class="con_block">
+      <div class="con_info">
+        <img src="images/liu1.png" alt="单位" />
+        <input
+          type="text"
+          name="company"
+          placeholder="单位"
+          autocomplete="off"
+        />
+      </div>
+      <div class="con_info">
+        <img src="images/liu3.png" alt="联系电话" />
+        <input
+          type="text"
+          name="phone"
+          placeholder="联系电话"
+          autocomplete="off"
+        />
+      </div>
+      <div class="con_info">
+        <img src="images/liu2.png" alt="电子邮箱" />
+        <span class="liu_required">*</span>
+        <input
+          type="text"
+          name="email"
+          placeholder="电子邮箱"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+    <div class="con_block">
+      <div class="con_info">
+        <img src="images/liu4.png" alt="留言" />
+        <span class="liu_required">*</span>
+        <textarea v-model="form.content" placeholder="您的留言" autocomplete="off"
+        ></textarea>
+      </div>
+    </div>
+    <input
+      type="button"
+      :value="submitText"
+      class="proex_form_btu"
+      :disabled="submitting"
+      @click="submit"
+    />
+  </form>
+) : (
+  <form class="liu_form">
+    {caption && (<span class="liu_caption">{ caption }</span>)}
+    <div class="liu_info">
+      <img src="images/liu1.png" alt="单位" />
+      <input
+        type="text"
+        v-model="form.company"
+        placeholder="单位"
+        autocomplete="off"
+      />
+    </div>
+    <div class="liu_info">
+      <img src="images/liu2.png" alt="电子邮箱" />
+      <span class="liu_required">*</span>
+      <input
+        type="text"
+        v-model="form.email"
+        placeholder="电子邮箱"
+        autocomplete="off"
+      />
+    </div>
+    <div class="liu_info">
+      <img src="images/liu3.png" alt="联系电话" />
+      <input
+        type="text"
+        v-model="form.phone"
+        placeholder="联系电话"
+        autocomplete="off"
+      />
+    </div>
+    <div class="liu_info">
+      <img src="images/liu4.png" alt="留言" />
+      <span class="liu_required">*</span>
+      <textarea v-model="form.content" placeholder="您的留言" autocomplete="off"
+      ></textarea>
+    </div>
+    <input
+      type="button"
+      :value="submitText"
+      class="liu_btu"
+      :disabled="submitting"
+      @click="submit"
+    />
+  </form>
+)}
+
+<script>
+  document.querySelector('form')?.addEventListener('submit', async (e: any) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    const response = await fetch('/api/submit', {
+      method: 'POST',
+      body: formData, // 如果是 JSON 就设置 headers: { 'Content-Type': 'application/json' }
+    });
+    const result = await response.json();
+    console.log(result);
+  });
+</script>
