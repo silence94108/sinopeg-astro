@@ -7,7 +7,7 @@ const bannerList: any = requestData("banner", {
   sort: "sortAsc",
 });
 
-const bannerSuggestions: any = []
+const searchPath = `${import.meta.env.BASE_URL}search.html`;
 ---
 
 <div class="banner">
@@ -36,36 +36,26 @@ const bannerSuggestions: any = []
   </div>
   <div class="banner_box">
     <span class="banner_title">{bannerList[0] && bannerList[0].title}</span>
-    <form class="banner_form" @submit.prevent="submitSearch">
+    <form class="banner_form" action={searchPath} method="get" data-banner-search-form>
       <input
         type="text"
-        v-model="keyword"
+        name="key"
         autocomplete="off"
         class="banner_form_input"
         placeholder="请输入您要的信息 我们帮您查找"
-        @input="updateBannerSuggestions"
-        @focus="updateBannerSuggestions"
-        @blur="hideBannerSuggestions"
+        aria-controls="search_list"
+        aria-expanded="false"
+        data-banner-search-input
       />
-      <input type="button" class="banner_form_btu" @click="submitSearch" />
+      <input type="submit" value="" class="banner_form_btu" aria-label="搜索" />
     </form>
     <div class="serach_area">
       <ul
         id="search_list"
-        v-show="bannerSuggestionsVisible && bannerSuggestions.length"
-        style="display: block;background: #ffffff;"
-      >
-        {
-          bannerSuggestions.map((item: any) => (
-            <li
-              style="font-size: 14px; cursor: pointer;"
-              @mousedown.prevent="selectBannerSuggestion(item)"
-            >
-              {item}
-            </li>
-          ))
-        }
-      </ul>
+        hidden
+        style="background: #ffffff;"
+        data-banner-search-list
+      ></ul>
     </div>
   </div>
   <div class="banner_bg"></div>
@@ -76,6 +66,47 @@ const bannerSuggestions: any = []
   import { Navigation, Autoplay } from 'swiper/modules';
   import 'swiper/css';
   import 'swiper/css/navigation';
+
+  type SearchIndexItem = {
+    title: string;
+    casNo: string;
+    productNo: string;
+    abbrName: string;
+    keywords: string;
+    intro: string;
+  };
+
+  const suggestionFields: (keyof SearchIndexItem)[] = [
+    'title',
+    'casNo',
+    'productNo',
+    'abbrName',
+    'keywords',
+    'intro',
+  ];
+
+  const normalizeText = (value: unknown) => String(value ?? '').trim();
+
+  const getSuggestions = (items: SearchIndexItem[], keyword: string, limit = 10) => {
+    const searchKeyword = normalizeText(keyword).toLowerCase();
+    const suggestions: string[] = [];
+    const seen = new Set<string>();
+
+    if (!searchKeyword) return suggestions;
+
+    for (const item of items) {
+      for (const field of suggestionFields) {
+        const value = normalizeText(item[field]);
+        if (!value || !value.toLowerCase().includes(searchKeyword) || seen.has(value)) continue;
+
+        seen.add(value);
+        suggestions.push(value);
+        if (suggestions.length >= limit) return suggestions;
+      }
+    }
+
+    return suggestions;
+  };
 
   const slideCount = document.querySelectorAll('.swiper-container1 .swiper-slide').length;
 
@@ -90,4 +121,101 @@ const bannerSuggestions: any = []
       prevEl: '.swiper-button-prev1',
     },
   });
+
+  const searchForm = document.querySelector<HTMLFormElement>('[data-banner-search-form]');
+  const searchInput = document.querySelector<HTMLInputElement>('[data-banner-search-input]');
+  const searchList = document.querySelector<HTMLUListElement>('[data-banner-search-list]');
+
+  if (searchForm && searchInput && searchList) {
+    let searchIndexPromise: Promise<SearchIndexItem[]> | null = null;
+    let debounceTimer: number | undefined;
+    let hideTimer: number | undefined;
+    let requestVersion = 0;
+
+    const hideSuggestions = () => {
+      searchList.hidden = true;
+      searchInput.setAttribute('aria-expanded', 'false');
+    };
+
+    const loadSearchIndex = () => {
+      if (!searchIndexPromise) {
+        const endpoint = `${import.meta.env.BASE_URL}search-index.json`;
+        searchIndexPromise = fetch(endpoint)
+          .then(response => {
+            if (!response.ok) throw new Error(`搜索索引加载失败：${response.status}`);
+            return response.json();
+          })
+          .then(data => Array.isArray(data) ? data as SearchIndexItem[] : [])
+          .catch(error => {
+            searchIndexPromise = null;
+            throw error;
+          });
+      }
+
+      return searchIndexPromise;
+    };
+
+    const renderSuggestions = (suggestions: string[]) => {
+      searchList.replaceChildren();
+
+      for (const suggestion of suggestions) {
+        const item = document.createElement('li');
+        item.textContent = suggestion;
+        item.style.fontSize = '14px';
+        item.style.cursor = 'pointer';
+        item.addEventListener('mousedown', event => {
+          event.preventDefault();
+          searchInput.value = suggestion;
+          hideSuggestions();
+        });
+        searchList.append(item);
+      }
+
+      searchList.hidden = suggestions.length === 0;
+      searchInput.setAttribute('aria-expanded', String(suggestions.length > 0));
+    };
+
+    const updateSuggestions = async () => {
+      const keyword = searchInput.value.trim();
+      const currentVersion = ++requestVersion;
+
+      if (!keyword) {
+        searchList.replaceChildren();
+        hideSuggestions();
+        return;
+      }
+
+      try {
+        const searchIndex = await loadSearchIndex();
+        if (currentVersion !== requestVersion || searchInput.value.trim() !== keyword) return;
+        renderSuggestions(getSuggestions(searchIndex, keyword));
+      } catch {
+        if (currentVersion === requestVersion) hideSuggestions();
+      }
+    };
+
+    const scheduleSuggestions = () => {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(updateSuggestions, 200);
+    };
+
+    searchInput.addEventListener('input', scheduleSuggestions);
+    searchInput.addEventListener('focus', () => {
+      window.clearTimeout(hideTimer);
+      void updateSuggestions();
+    });
+    searchInput.addEventListener('blur', () => {
+      hideTimer = window.setTimeout(() => {
+        requestVersion++;
+        hideSuggestions();
+      }, 120);
+    });
+
+    searchForm.addEventListener('submit', event => {
+      if (searchInput.value.trim()) return;
+      event.preventDefault();
+      window.alert('请输入查询的关键词');
+      searchInput.focus();
+    });
+  }
 </script>
