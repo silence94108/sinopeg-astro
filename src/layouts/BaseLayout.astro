@@ -29,10 +29,16 @@ const ico = siteInfo.icon || '/images/favicon.ico'
   <meta name="renderer" content="webkit" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href={ico} type="image/x-icon" rel="shortcut icon" />
-  <script src="../scripts/jquery.min.js"></script>
-  <script src="../scripts/swiper.min.js"></script>
   <script>
+    import $ from 'jquery';
     import { submitStatistics } from '../scripts/analytics'
+
+    Object.assign(window, { $, jQuery: $ });
+
+    // @ts-expect-error 旧脚本仅用于执行副作用
+    await import('../scripts/jquery.zoom.js');
+    // @ts-expect-error 旧脚本仅用于执行副作用
+    await import('../scripts/index.js');
 
     void submitStatistics()
   </script>

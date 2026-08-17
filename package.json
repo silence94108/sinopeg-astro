@@ -18,5 +18,8 @@
   },
   "volta": {
     "node": "22.20.0"
+  },
+  "devDependencies": {
+    "@types/jquery": "^4.0.1"
   }
 }
