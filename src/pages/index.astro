@@ -1,62 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { requestData } from '../lib/utils';
+import HomeBanner from '../components/HomeBanner.astro';
 
-const pageTitle = "首页";
-
-const bannerList: any = requestData("banner", {
-	data_type: "list",
-	limit: -1,
-	sort: "sortAsc"
-});
-console.log(bannerList);
-const bannerSuggestions: any = [];
+const tdk = {
+  title: '首页 - 厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商',
+  description: '聚乙二醇衍生物, peg化脂质, LNP递送, siRNA靶向修饰,嵌段共聚物, 药物递送系统(DDS)',
+  keywords: '厦门赛诺邦格生物科技股份有限公司专注于药物递送系统（DDS）及高端医用材料研发，提供聚乙二醇衍生物（单/多分散）、peg化脂质、LNP递送等产品，应用于mRNA疫苗、小核酸药物、长效蛋白药及基因治疗领域。'
+}
 ---
 
-<BaseLayout pageTitle={pageTitle}>
-	<div class="banner">
-		<div class="swiper-container swiper-container1">
-				<div class="swiper-wrapper">
-					{(bannerList && bannerList.length > 0) ? bannerList.map((item: any) => {
-					  <div class="swiper-slide">
-							<div class="banner_area">
-								<img src={item.bg_img} alt={item.title} />
-							</div>
-						</div>
-					}) : (
-						<div class="swiper-slide">
-							<div class="banner_area"><img src="images/banner1.png" alt="banner" /></div>
-						</div>
-					)}
-				</div>
-				<div class="swiper-button-next swiper-button-next1"></div>
-				<div class="swiper-button-prev swiper-button-prev1"></div>
-		</div>
-		<div class="banner_box">
-				<span class="banner_title">{ bannerList[0] && bannerList[0].title }</span>
-				<form class="banner_form" @submit.prevent="submitSearch">
-						<input type="text" v-model="keyword" autocomplete="off" class="banner_form_input"
-								placeholder="请输入您要的信息 我们帮您查找"
-								@input="updateBannerSuggestions"
-								@focus="updateBannerSuggestions"
-								@blur="hideBannerSuggestions" />
-						<input type="button" class="banner_form_btu" @click="submitSearch" />
-				</form>
-				<div class="serach_area">
-						<ul
-								id="search_list"
-								v-show="bannerSuggestionsVisible && bannerSuggestions.length"
-								style="display: block;background: #ffffff;"
-						>
-								{bannerSuggestions.map((item: any) => (
-									<li
-										style="font-size: 14px; cursor: pointer;"
-										@mousedown.prevent="selectBannerSuggestion(item)"
-									>{ item }</li>
-								))}
-						</ul>
-				</div>
-		</div>
-		<div class="banner_bg"></div>
-	</div>
+<BaseLayout tdk={tdk}>
+	<HomeBanner />
 </BaseLayout>
