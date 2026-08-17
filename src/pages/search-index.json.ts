@@ -19,7 +19,7 @@ type SearchIndexItem = {
  * 后端 JSON 中的字段可能是字符串、数组或对象。
  * endpoint 统一转成普通字符串，浏览器端就不需要反复判断数据类型。
  */
-const toText = (value: unknown) => {
+const toText: any = (value: unknown) => {
   if (value === undefined || value === null) return ''
   if (Array.isArray(value)) return value.map(toText).join(' ')
   if (typeof value === 'object') return Object.values(value).map(toText).join(' ')
