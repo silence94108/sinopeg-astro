@@ -290,59 +290,57 @@ const siteInfo = requestData("site")
 			<img src="images/jian2.png" class="index_pro_hide" />
 		</a>
 	</div>
+	<script>
+		import Swiper from 'swiper';
+		import {
+			FreeMode,
+			Grid,
+			Navigation,
+			Pagination,
+			Thumbs,
+		} from 'swiper/modules';
+
+		import 'swiper/css';
+		import 'swiper/css/grid';
+		import 'swiper/css/navigation';
+		import 'swiper/css/pagination';
+		import 'swiper/css/free-mode';
+
+		const thumbsSwiper = new Swiper('.cooperation-thumbs', {
+			modules: [FreeMode, Grid, Navigation, Pagination],
+			slidesPerView: 3,
+			grid: {
+				rows: 2,
+				fill: 'column',
+			},
+			spaceBetween: 10,
+			freeMode: true,
+			watchSlidesProgress: true,
+			navigation: {
+				nextEl: '.cooperation-next',
+				prevEl: '.cooperation-prev',
+			},
+			pagination: {
+				el: '.cooperation-pagination',
+				type: 'fraction',
+			},
+			breakpoints: {
+				1000: {
+					slidesPerView: 2,
+					grid: {
+						rows: 3,
+						fill: 'column',
+					},
+				},
+			},
+		});
+
+		new Swiper('.cooperation-content', {
+			modules: [Thumbs],
+			autoHeight: true,
+			thumbs: {
+				swiper: thumbsSwiper,
+			},
+		});
+	</script>
 </BaseLayout>
-
-
-<script>
-  import Swiper from 'swiper';
-  import {
-    FreeMode,
-    Grid,
-    Navigation,
-    Pagination,
-    Thumbs,
-  } from 'swiper/modules';
-
-  import 'swiper/css';
-  import 'swiper/css/grid';
-  import 'swiper/css/navigation';
-  import 'swiper/css/pagination';
-  import 'swiper/css/free-mode';
-
-  const thumbsSwiper = new Swiper('.cooperation-thumbs', {
-    modules: [FreeMode, Grid, Navigation, Pagination],
-    slidesPerView: 3,
-    grid: {
-      rows: 2,
-      fill: 'column',
-    },
-    spaceBetween: 10,
-    freeMode: true,
-    watchSlidesProgress: true,
-    navigation: {
-      nextEl: '.cooperation-next',
-      prevEl: '.cooperation-prev',
-    },
-    pagination: {
-      el: '.cooperation-pagination',
-      type: 'fraction',
-    },
-    breakpoints: {
-      1000: {
-        slidesPerView: 2,
-        grid: {
-          rows: 3,
-          fill: 'column',
-        },
-      },
-    },
-  });
-
-  new Swiper('.cooperation-content', {
-    modules: [Thumbs],
-    autoHeight: true,
-    thumbs: {
-      swiper: thumbsSwiper,
-    },
-  });
-</script>
