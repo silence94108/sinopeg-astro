@@ -1,24 +1,53 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import MessageForm from "../../components/MessageForm.astro";
 import { requestData } from "../../lib/utils";
 
-// 联系分类：顶部联系方式、投诉建议等内容统一取这个分类下的数据
 const CONTACT_CATEGORY_ID = "6a16acfdb055ec6ea9349238";
-const bannerRes = requestData("category", {
+const MAP_CATEGORY_ID = "6a1cefc7485fd200f815be33";
+
+const bannerData = requestData("category", {
   data_type: "show",
-  id: CONTACT_CATEGORY_ID
-})
-const bannerImage = bannerRes && bannerRes.info && bannerRes.info.image_intro || "images/bg7.png";
+  id: CONTACT_CATEGORY_ID,
+});
+const bannerImage = bannerData?.info?.image_intro || "/images/bg7.png";
 
 const contactList = requestData("contact", {
   data_type: "list",
   category_id: CONTACT_CATEGORY_ID,
   sort: "sortAsc",
-  limit: -1
+  limit: -1,
 }) || [];
 
-// 地图分类：工厂/总部地图点，bg_img 为默认图标，acImg 为选中图标
-const MAP_CATEGORY_ID = "6a1cefc7485fd200f815be33";
+const mapPoints = requestData("contact", {
+  data_type: "list",
+  category_id: MAP_CATEGORY_ID,
+  sort: "sortAsc",
+  limit: -1,
+}) || [];
+
+const getMapCover = (point: any) => point?.botImg || point?.acImg || point?.bg_img || "";
+const getMapIcon = (point: any, active = false) =>
+  active ? point?.acImg || point?.bg_img || "" : point?.bg_img || "";
+const getMapUrl = (point: any) => {
+  if (!point) return "";
+  const longitude = point.long || point.lng;
+  const latitude = point.lat;
+  const name = encodeURIComponent(point.title || "");
+  const address = encodeURIComponent(point.intro || point.addr || "");
+
+  if (longitude && latitude) {
+    return `https://uri.amap.com/marker?position=${longitude},${latitude}&name=${name}&address=${address}&src=sinopeg&coordinate=gaode&callnative=1`;
+  }
+
+  return address
+    ? `https://uri.amap.com/search?keyword=${address}&src=sinopeg&coordinate=gaode&callnative=1`
+    : "";
+};
+
+const currentPoint = mapPoints[0];
+const currentCover = getMapCover(currentPoint);
+const currentMapUrl = getMapUrl(currentPoint);
 ---
 
 <BaseLayout>
@@ -32,26 +61,169 @@ const MAP_CATEGORY_ID = "6a1cefc7485fd200f815be33";
           </div>
         </div>
         <div class="zi_right">
-          <a href="/" class="zi_home">首页</a><span class="zi_text">
-            > 联系</span>
+          <a href="/" class="zi_home">首页</a><span class="zi_text"> &gt; 联系</span>
         </div>
       </div>
     </div>
   </div>
+
   <div class="con_top">
-    <img src="images/bg7.png" class="con_bg1" alt="联系我们" />
-    <img src="images/bg7.png" class="con_bg2" alt="联系我们" />
+    <img src="/images/bg7.png" class="con_bg1" alt="" />
+    <img src="/images/bg7.png" class="con_bg2" alt="" />
     <div class="inner">
       <ul class="con_list">
         {contactList.map((item: any) => (
           <li class="con_item">
-            <img src={item.bg_img} style="width:80px;" alt={item.title || '联系我们'} />
+            <img src={item.bg_img || "/images/bg7.png"} style="width:80px;" alt={item.title || "联系我们"} />
             <div class="con_top_box">
-              {item.details ? <span set:html={item.details}></span> : <span>{item.title}</span>}
+              {item.details ? <div set:html={item.details}></div> : <span>{item.title}</span>}
             </div>
           </li>
         ))}
       </ul>
     </div>
   </div>
+
+  <div class="con_liu">
+    <div class="inner">
+      <span class="con_liu_title">如果您有任何疑问或建议，请给我们留言</span>
+      <MessageForm layout="inline" />
+    </div>
+  </div>
+
+  <div class="map">
+    {currentPoint ? (
+      <a
+        href={currentMapUrl || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="map_visual"
+        data-map-visual
+      >
+        <img
+          src={currentCover || "/images/bg7.png"}
+          alt={currentPoint.title || "联系地址"}
+          class="map_visual_img"
+          data-map-cover-image
+          hidden={!currentCover}
+        />
+        <div class="map_visual_empty" data-map-cover-empty hidden={Boolean(currentCover)}>
+          暂未配置地址图片
+        </div>
+      </a>
+    ) : (
+      <div class="map_visual"><div class="map_visual_empty">暂无地图地址</div></div>
+    )}
+
+    {mapPoints.length > 0 && (
+      <div class="map_section">
+        <div class="inner clearfix">
+          {mapPoints.map((point: any, index: number) => (
+            <button
+              type="button"
+              class={`map_area ${index === 0 ? "aaaa" : ""}`}
+              data-map-index={index}
+              data-map-url={getMapUrl(point)}
+              data-map-cover={getMapCover(point)}
+              data-map-title={point.title || "联系地址"}
+              data-map-icon={getMapIcon(point)}
+              data-map-active-icon={getMapIcon(point, true)}
+            >
+              <span class={index === 0 ? "map_title" : "map_title1"}>
+                <img
+                  src={getMapIcon(point, index === 0)}
+                  alt=""
+                  class="map_icon"
+                  data-map-icon-image
+                />
+                {point.title}
+              </span>
+              <span class={index === 0 ? "map_text" : "map_text1"}>{point.intro || point.addr}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
 </BaseLayout>
+
+<style>
+  .map_visual {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 630px;
+    overflow: hidden;
+    background: #eef4f8;
+  }
+
+  .map_visual_img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .map_visual_empty {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: #6c7a89;
+    font-size: 18px;
+    background: #eef4f8;
+  }
+
+  .map_area {
+    border: 0;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  @media screen and (max-width: 768px) {
+    .map_visual {
+      height: auto;
+      min-height: 240px;
+    }
+
+    .map_visual_img {
+      height: 240px;
+    }
+  }
+</style>
+
+<script>
+  const visual = document.querySelector<HTMLElement>("[data-map-visual]");
+  const visualImage = visual?.querySelector<HTMLImageElement>("[data-map-cover-image]");
+  const visualEmpty = visual?.querySelector<HTMLElement>("[data-map-cover-empty]");
+  const mapButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-map-index]"));
+
+  mapButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      mapButtons.forEach((item) => {
+        const active = item === button;
+        item.classList.toggle("aaaa", active);
+
+        const title = item.querySelector<HTMLElement>("[data-map-icon-image]")?.parentElement;
+        const text = item.querySelector<HTMLElement>(".map_text, .map_text1");
+        title?.classList.toggle("map_title", active);
+        title?.classList.toggle("map_title1", !active);
+        text?.classList.toggle("map_text", active);
+        text?.classList.toggle("map_text1", !active);
+
+        const icon = item.querySelector<HTMLImageElement>("[data-map-icon-image]");
+        if (icon) icon.src = active ? item.dataset.mapActiveIcon || item.dataset.mapIcon || "" : item.dataset.mapIcon || "";
+      });
+
+      if (!visual) return;
+      const cover = button.dataset.mapCover || "";
+      const title = button.dataset.mapTitle || "联系地址";
+      visual.setAttribute("href", button.dataset.mapUrl || "#");
+      visualImage?.setAttribute("alt", title);
+      if (visualImage && cover) visualImage.src = cover;
+      if (visualImage) visualImage.hidden = !cover;
+      if (visualEmpty) visualEmpty.hidden = Boolean(cover);
+    });
+  });
+</script>
