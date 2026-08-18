@@ -28,6 +28,29 @@ const proListClass = () => {
 	return "";
 }
 
+// 技术
+const techList = requestData("technology", {
+	page: 1,
+	limit: 4,
+	data_type: "list"
+});
+const currentTechIndex = 0;
+
+// 服务
+const serviceList = requestData("service", {
+	data_type: "list",
+	limit: 2,
+	sort: "sortDesc"
+});
+
+// 新闻
+const newsList = requestData("news", {
+	data_type: "list",
+	page: 1,
+	limit: 3,
+	sort: "sortDesc",
+	recommend: true
+});
 
 const ABOUT_INFO_ID = "6a1e75a110b5fc178d494b8b";
 const COOPERATION_CATEGORY_ID = "6a22243737509051865330ed";
@@ -62,6 +85,117 @@ const COOPERATION_CATEGORY_ID = "6a22243737509051865330ed";
 				{!goodsCategories.length && (<li class="jzt2-empty">暂无产品分类</li>)}
 			</ul>
 			<a href="project.html" class="index_pro_more">
+				<span>查看更多</span>
+				<img src="images/jian4.png" class="index_pro_show" />
+				<img src="images/jian2.png" class="index_pro_hide" />
+			</a>
+		</div>
+	</div>
+	<!-- 技术 -->
+	<div class="index_tech">
+		<div class="inner">
+			<div class="index_tech_title">
+				<span class="index_pro_en">Technology</span>
+				<h2 class="index_pro_zh">技术</h2>
+			</div>
+			<div class="index_tech_right spb">
+				{techList.map((item: any, index: number) => (
+					<div class={`index_tech_item ${index === currentTechIndex ? 'index_tech_current' : ''}`} onclick="setCurrentTech(index)">
+						<div class="index_tech_info">
+							<img src="images/tech2.png" />
+							<h3 class="index_tech_caption">{ item.title }</h3>
+							<img src="images/tech1.png" class="index_tech_biao" />
+						</div>
+					</div>
+				))}
+			</div>
+			<div class="index_tech_section">
+				<img src="images/g16.png" class="index_tech_bg" />
+				<div class="index_tech_block">
+					{techList.map((item: any, index: number) => (
+						<div class="index_tech_area" v-if="index === currentTechIndex">
+							<div class="index_tech_box">
+								<a href={`'tech.html?id=${item.id}&category_id=${item.category_id}`}
+									class="index_tech_photo">
+									<img src={item.bg_img || 'images/tech1.png'} alt={item.title} />
+								</a>
+							</div>
+							<h3 class="index_tech_name">{ item.title }</h3>
+							<span class="index_tech_text">{ item.intro || item.desc }</span>
+						</div>
+					))}
+					{!techList.length && (<div class="jzt2-empty">暂无技术内容</div>)}
+				</div>
+				<div class="index_tech_right pc">
+					{techList.map((item: any, index: number) => (
+					<div class={`index_tech_item ${index === currentTechIndex ? 'index_tech_current' : ''}`} onclick="setCurrentTech(index)">
+						<div class="index_tech_info">
+							<img src="images/tech2.png" />
+							<h3 class="index_tech_caption">{ item.title }</h3>
+							<img src="images/tech1.png" class="index_tech_biao" />
+						</div>
+					</div>
+					))}
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- 服务 -->
+	<div class="index_service">
+		<div class="inner">
+			<div class="index_service_section">
+				<div class="index_service_title">
+					<span class="index_pro_en">Service</span>
+					<h2 class="index_pro_zh">服务</h2>
+				</div>
+				<ul class="index_service_list">
+					{serviceList.map((item: any) => (
+						<li class="index_service_item">
+							<a href={`service.html?id=${item.id}&category_id=${item.category_id}`} class="index_service_link">
+								<div class="index_service_left">
+									<img src={item.bg_img} />
+									<h3>{ item.title }</h3>
+								</div>
+								<div class="index_service_right">
+									<span>查看更多</span>
+									<img src="images/jian4.png" />
+								</div>
+								<img src="images/kuang1.png" class="index_service_bg1" />
+								<img src="images/kuang2.png" class="index_service_bg2" />
+							</a>
+						</li>
+					))}
+					{!serviceList.length && (<li class="jzt2-empty">暂无服务内容</li>)}
+				</ul>
+			</div>
+		</div>
+	</div>
+	<!-- 新闻 -->
+	<div class="index_news">
+		<div class="inner">
+			<div class="index_pro_title">
+				<span class="index_pro_en">News</span>
+				<h2 class="index_pro_zh">新闻</h2>
+			</div>
+			<ul class="index_news_list">
+				{newsList.map((item: any) => (
+					<li class="index_news_item">
+						<a href={`news_ex.html?id=${item.id}&category_id=${item.category_id}&sort=sortAsc`} class="index_news_link">
+							<img src={item.bg_img || 'images/news1.png'} alt={item.title} />
+							<div class="index_news_box">
+								<h3 class="index_news_title">{ item.title }</h3>
+								<span class="index_news_text">{ item.intro }</span>
+							</div>
+							<div class="index_news_time">
+								<span>{ item.create_time }</span>
+								<img src="images/jian1.png" />
+							</div>
+						</a>
+					</li>
+				))}
+				{!newsList.length && (<li class="jzt2-empty">暂无新闻内容</li>)}
+			</ul>
+			<a href="news.html" class="index_pro_more">
 				<span>查看更多</span>
 				<img src="images/jian4.png" class="index_pro_show" />
 				<img src="images/jian2.png" class="index_pro_hide" />

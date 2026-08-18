@@ -56,13 +56,6 @@ $(function () {
     }
   });
 
-
-
-
-
-
-
-
   var a = $(".index_pro_item").length;
   // alert(a);
   if (a == 4 || a == 7 || a == 8) {
