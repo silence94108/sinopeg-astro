@@ -451,12 +451,12 @@ span {
 .nav_er_current .nav_er_link {
 	color: #ffffff;
 	border-radius: 5px;
-	background:  #1459A8 url(../images/jian6.png) no-repeat 93% center;
+	background:  #1459A8 url(/images/jian6.png) no-repeat 93% center;
 	background-size: 8px 12px;
 }
 .nav_er_item:hover .nav_er_link {
 	color: #ffffff;
-	background:  #1459A8 url(../images/jian6.png) no-repeat 93% center;
+	background:  #1459A8 url(/images/jian6.png) no-repeat 93% center;
 	border-radius: 5px;
 }
 .nav_san_link {
@@ -469,12 +469,12 @@ span {
 .nav_san_current .nav_san_link {
 	color: #ffffff;
 	border-radius: 5px;
-	background:  #1459A8 url(../images/jian6.png) no-repeat 93% center;
+	background:  #1459A8 url(/images/jian6.png) no-repeat 93% center;
 	background-size: 8px 12px;
 }
 .nav_san_item:hover .nav_san_link {
 	color: #ffffff;
-	background:  #1459A8 url(../images/jian6.png) no-repeat 93% center;
+	background:  #1459A8 url(/images/jian6.png) no-repeat 93% center;
 	border-radius: 5px;
 }
 .nav_si_link {
@@ -619,7 +619,7 @@ span {
 .header_form_btu {
 	width: 15px;
 	height: 15px;
-	background: url(../images/search.png) no-repeat left center;
+	background: url(/images/search.png) no-repeat left center;
 	background-size: 100% 100%;
 	border: none;
 }
@@ -649,7 +649,7 @@ span {
 .banner_form_btu {
 	width: 28px;
 	height: 28px;
-	background: url(../images/search1.png) no-repeat left center;
+	background: url(/images/search1.png) no-repeat left center;
 	background-size: 100% 100%;
 	border: none;
 }
@@ -683,7 +683,7 @@ span {
 .banner .swiper-button-prev {
 	width: 40px !important;
     height: 40px !important;
-    background-image: url(../images/jian13.png);
+    background-image: url(/images/jian13.png);
     background-repeat: no-repeat;
     outline: none;
 	top: 50%;
@@ -698,7 +698,7 @@ span {
 .banner .swiper-button-next {
 	width: 40px !important;
     height: 40px !important;
-	background-image: url(../images/jian14.png);
+	background-image: url(/images/jian14.png);
     background-repeat: no-repeat;
 	outline: none;
 	top: 50%;
@@ -711,7 +711,7 @@ span {
 	content: '';
 }
 .index_pro {
-	background: url(../images/bg2.png) no-repeat center center;
+	background: url(/images/bg2.png) no-repeat center center;
 	background-size: cover;
 	padding: 76px 0 100px 0;
 }
@@ -888,7 +888,7 @@ span {
 	transform: translateY(-50%);
 }
 .index_tech_item {
-	background: url(../images/bg5.png) no-repeat left center;
+	background: url(/images/bg5.png) no-repeat left center;
 	background-size: 100%;
 	width: 171px;
 	height: 151px;
@@ -930,7 +930,7 @@ span {
 	display: block;
 }
 .index_service {
-	background: url(../images/bg3.png) no-repeat center center;
+	background: url(/images/bg3.png) no-repeat center center;
 	background-size: cover;
 	padding: 90px 0;
 }
@@ -1099,7 +1099,7 @@ span {
 	display: block;
 }
 .index_hezuo {
-	background: url(../images/bg4.png) no-repeat center center;
+	background: url(/images/bg4.png) no-repeat center center;
 	background-size: cover;
 	padding: 80px 0 133px 0;
 }
@@ -1149,7 +1149,7 @@ span {
 .index_hezuo_info .swiper-button-prev {
 	width: 29px !important;
     height: 33px !important;
-    background-image: url(../images/jian7.png);
+    background-image: url(/images/jian7.png);
     outline: none;
 	top: inherit;
 	bottom: 10px;
@@ -1164,7 +1164,7 @@ span {
 .index_hezuo_info .swiper-button-next {
 	width: 29px !important;
     height: 33px !important;
-	background-image: url(../images/jian8.png);
+	background-image: url(/images/jian8.png);
 	outline: none;
 	top: inherit;
 	bottom: 10px;
@@ -1231,7 +1231,7 @@ span {
 	margin-left: 10px;
 }
 .index_about {
-	background: url(../images/bg6.png) no-repeat center center;
+	background: url(/images/bg6.png) no-repeat center center;
 	background-size: cover;
 	padding: 150px 0 170px 0;
 }
@@ -1256,7 +1256,7 @@ span {
 	width: 50%;
 }
 .footer {
-	background: url(../images/bg1.png) no-repeat center top;
+	background: url(/images/bg1.png) no-repeat center top;
 	background-size: cover;
 	padding: 180px 0 65px 0;
 	position: relative;
@@ -1626,7 +1626,7 @@ span {
 	height: 50px;
 }
 .zi_home {
-	background: url(../images/home.png) no-repeat left center;
+	background: url(/images/home.png) no-repeat left center;
 	background-size: 15px 15px;
 	padding-left: 25px;
 	font-size: 14px;
@@ -1703,12 +1703,18 @@ span {
 	font-size: 20px;
 	color: #1459A8;
 	width: 15px;
+	padding: 0;
+	line-height: 1;
+	background: transparent;
 	cursor: pointer;
 }
 .left_jia {
 	font-size: 20px;
 	color: #1459A8;
 	width: 15px;
+	padding: 0;
+	line-height: 1;
+	background: transparent;
 	cursor: pointer;
 }
 .left_title {
@@ -2102,7 +2108,7 @@ span {
 .tech_re {
 	font-size: 20px;
 	color: #090909;
-	background: url(../images/ico6.png) no-repeat left bottom;
+	background: url(/images/ico6.png) no-repeat left bottom;
 	background-size: 50px 5px;
 	padding-bottom: 15px;
 	margin-bottom: 10px;
@@ -2136,7 +2142,7 @@ span {
 	font-size: 16px;
 	color: #1459A8;
 	padding-right: 20px;
-	background: url(../images/jian9.png) no-repeat right center;
+	background: url(/images/jian9.png) no-repeat right center;
 	background-size: 8px 8px;
 }
 .tech_re_item:hover .tech_re_title {
@@ -2232,7 +2238,7 @@ span {
 	font-size: 14px;
 	color: #1459A8;
 	display: inline-block;
-	background: url(../images/jian5.png) no-repeat right center;
+	background: url(/images/jian5.png) no-repeat right center;
 	background-size: 17px 11px;
 	padding-right: 30px;
 }
@@ -2254,7 +2260,7 @@ span {
 	font-size: 14px;
 	color: #1459A8;
 	padding-left: 35px;
-	background: url(../images/jian10.png) no-repeat left center;
+	background: url(/images/jian10.png) no-repeat left center;
 	background-size: 28px 17px;
 	margin: 0 0 40px 0;
 	margin-left: 20px;

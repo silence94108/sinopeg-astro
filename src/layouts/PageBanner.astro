@@ -1,0 +1,37 @@
+---
+interface Crumbs {
+  link?: string;
+  name: string;
+}
+interface Props {
+  bannerImage?: string;
+  titleZh?: string;
+  titleEn?: string;
+  crumbs?: Crumbs[];
+}
+const { bannerImage, titleZh, titleEn, crumbs } = Astro.props;
+
+const crumbList = crumbs || []
+---
+
+<div class="banner">
+  <img src={bannerImage || "images/bg7.png"} alt={titleZh} />
+  <div class="zi">
+    <div class="zi_bg"></div>
+    <div class="inner">
+      <div class="zi_left">
+        <div class="zi_box">
+          <span class="zi_zh">{ titleZh }</span>
+          {titleZh && <span class="zi_en">{ titleEn }</span>}
+        </div>
+      </div>
+      <div class="zi_right">
+        <a href="/" class="zi_home">首页</a>
+        {crumbList.map((crumb: Crumbs) => crumb.link
+          ? <a href={crumb.link} class="zi_link"> &gt; {crumb.name}</a>
+          : <span class="zi_text"> &gt; {crumb.name}</span>
+        )}
+      </div>
+    </div>
+  </div>
+</div>

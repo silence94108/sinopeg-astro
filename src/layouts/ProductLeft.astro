@@ -1,0 +1,109 @@
+---
+import { requestData } from "../lib/utils";
+
+interface Props {
+  currentId?: string;
+}
+
+const { currentId = "" } = Astro.props;
+const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a";
+
+const categories = requestData("category", {
+  data_type: "list",
+  limit: -1,
+  sort: "sortAsc",
+  type: "goods",
+});
+
+const childrenMap = new Map<string, any[]>();
+categories.forEach((category: any) => {
+  const parentId = String(category.pid || "");
+  const children = childrenMap.get(parentId) || [];
+  children.push(category);
+  childrenMap.set(parentId, children);
+});
+
+const getChildren = (id: string) => childrenMap.get(String(id)) || [];
+const rootCategories = getChildren(PRODUCT_PARENT_ID);
+const currentIds = new Set(String(currentId).split(",").map((id) => id.trim()).filter(Boolean));
+
+const hasActiveDescendant = (id: string): boolean =>
+  getChildren(id).some((item: any) =>
+    currentIds.has(String(item.id)) || hasActiveDescendant(String(item.id)),
+  );
+
+const isActive = (id: string) => currentIds.has(String(id));
+const isOpen = (id: string) => isActive(id) || hasActiveDescendant(String(id));
+const projectLink = (id: string) => `/project/${id}/`;
+const listLink = (id: string) => `prolist.html?category_id=${id}`;
+---
+
+<aside class="left" data-product-left>
+  <span class="left_caption sp">产品</span>
+  <ul class="left_list">
+    {rootCategories.length ? rootCategories.map((root: any) => {
+      const children = getChildren(root.id);
+      const rootOpen = isOpen(root.id);
+
+      return (
+        <li class={`left_item left_zhan_item${rootOpen ? " left_current" : ""}`}>
+          <div class="left_info">
+            <button type="button" class="left_jia" data-product-toggle aria-label={`展开${root.title}`}>+</button>
+            <button type="button" class="left_jian" data-product-toggle aria-label={`收起${root.title}`}>-</button>
+            <a href={projectLink(root.id)} class="left_title">{root.title}</a>
+          </div>
+          <div class="left_item_model"></div>
+          {children.length > 0 && (
+            <ul class="left_er_list">
+              {children.map((child: any) => {
+                const grandchildren = getChildren(child.id);
+                const childOpen = isOpen(child.id);
+
+                if (!grandchildren.length) {
+                  return (
+                    <li class={`left_san_item${isActive(child.id) ? " left_er_current" : ""}`}>
+                      <a href={listLink(child.id)} class="left_san_link"><span></span>{child.title}</a>
+                    </li>
+                  );
+                }
+
+                return (
+                  <li class={`left_er_item${childOpen ? " left_er_current" : ""}`}>
+                    <div class="left_info">
+                      <button type="button" class="left_jia" data-product-toggle aria-label={`展开${child.title}`}>+</button>
+                      <button type="button" class="left_jian" data-product-toggle aria-label={`收起${child.title}`}>-</button>
+                      <a href={listLink(child.id)}><span class="left_title1">{child.title}</span></a>
+                    </div>
+                    <ul class="left_san_list">
+                      {grandchildren.map((grand: any) => (
+                        <li class={`left_san_item${isActive(grand.id) ? " left_san_current" : ""}`}>
+                          <a href={listLink(grand.id)} class="left_san_link"><span></span>{grand.title}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </li>
+      );
+    }) : (
+      <li class="jzt2-empty">暂无产品分类</li>
+    )}
+  </ul>
+</aside>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-product-left]").forEach((menu) => {
+    menu.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      const toggle = target.closest<HTMLElement>("[data-product-toggle]");
+      if (!toggle) return;
+
+      const item = toggle.closest<HTMLElement>(".left_item, .left_er_item");
+      if (!item) return;
+      item.classList.toggle(item.matches(".left_item") ? "left_current" : "left_er_current");
+    });
+  });
+</script>

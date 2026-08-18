@@ -1,0 +1,83 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageBanner from "../../layouts/PageBanner.astro";
+import ProductLeft from "../../layouts/ProductLeft.astro";
+import { requestData } from "../../lib/utils";
+
+const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a"; // 产品分类的父级id
+export function getStaticPaths() {
+  const categories = requestData("category", {
+    data_type: "list",
+    limit: -1,
+    sort: "sortAsc",
+    type: "goods",
+    category_id: "6a16ba87f7cca976d042d56a",
+  });
+
+  return [
+    { params: { categoryId: undefined } },
+    ...categories.map((category: any) => ({
+      params: { categoryId: String(category.id) },
+    })),
+  ];
+}
+
+const { categoryId } = Astro.params;
+const allCategories = requestData("category", {
+  data_type: "list",
+  limit: -1,
+  sort: "sortAsc",
+  type: "goods",
+  category_id: PRODUCT_PARENT_ID,
+});
+const firstCategory = allCategories[0];
+const currentCategoryId = categoryId || String(firstCategory?.id || "");
+const parentData = requestData("category", {
+  data_type: "show",
+  limit: -1,
+  sort: "sortAsc",
+  type: "goods",
+  id: PRODUCT_PARENT_ID,
+});
+const parentInfo = (parentData && parentData.info) || {};
+const bannerImage = parentInfo.image_intro;
+const currentCategory =
+  allCategories.find((item: any) => String(item.id) === currentCategoryId) ||
+  firstCategory;
+const crumbs = [
+  { name: "产品", link: "/project/" },
+  ...(currentCategory ? [{ name: currentCategory.title }] : []),
+];
+---
+
+<BaseLayout>
+  <PageBanner
+    bannerImage={bannerImage}
+    titleZh="产品"
+    titleEn="Products"
+    crumbs={crumbs}
+  />
+  <div class="project_section">
+    <img src="/images/bg7.png" class="pro_bg1" />
+    <div class="block">
+      <div class="proj_bg"></div>
+      <div class="inner clearfix">
+        <ProductLeft currentId={currentCategoryId} />
+        <div class="right">
+          <div class="right_block">
+            <div class="right_area">
+              {currentCategory?.details ? (
+                <div class="right_area_box" set:html={currentCategory.details}></div>
+              ) : currentCategory ? (
+                <div class="jzt2-empty">暂无详细介绍</div>
+              ) : (
+                <div class="jzt2-empty">暂无产品分类</div>
+              )}
+            </div>
+          </div>
+        </div>
+        <div class="blank50"></div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
