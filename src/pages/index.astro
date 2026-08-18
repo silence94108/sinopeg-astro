@@ -21,7 +21,6 @@ const goodsCategories = requestData("category", {
 })
 const proListClass = () => {
 	const base = goodsCategories.length;
-	console.log(base);
 	const total = (base === 5 || base === 7) ? base + 1 : base;
 	if (total === 4 || total === 7 || total === 8) return "index_pro_list1";
 	if (total === 3 || total === 5 || total === 6) return "index_pro_list2";
@@ -86,7 +85,7 @@ const siteInfo = requestData("site")
 				{goodsCategories.map((item: any) => (
 					<li class="index_pro_item">
 						<a href={`project.html?category_id=${item.id}`} class="index_pro_link">
-							<div class="index_pro_photo"><img src={item.image_intro || 'images/g2.png'} alt="item.title" /></div>
+							<div class="index_pro_photo"><img src={item.image_intro || 'images/g2.png'} alt={item.title} /></div>
 							<h3 class="index_pro_name">{ item.title }</h3>
 						</a>
 					</li>

@@ -72,7 +72,7 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
                     {rootCategories.map((root: any) => (
                       <div class="nav_mega_group">
                         <a
-                          href={`/project/?category_id=${root.id}`}
+                          href={`/project/${root.id}`}
                           class="nav_mega_title"
                         >
                           {root.title}
@@ -117,7 +117,7 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
         }
       </ul>
       <a href="https://www.sinopeg.com/" class="en" target="_blank">
-        <img src="images/en.png" />
+        <img src="/images/en.png" />
       </a>
       <!-- Header 和 Banner 使用同一套产品搜索逻辑，表单本身保留原生 GET 兜底。 -->
       <form class="header_form" action={searchPath} method="get" data-header-search-form>

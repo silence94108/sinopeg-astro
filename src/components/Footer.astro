@@ -30,11 +30,11 @@ const footerSocialDataList = requestData("contact", {
 })
 
 const iconMap: any = {
-  Twitter链接: "images/twitter.png",
-  Facebook链接: "images/facebook.png",
-  领英链接: "images/foo1.png",
-  QQ: "images/foo2.png",
-  微信: "images/foo3.png"
+  Twitter链接: "/images/twitter.png",
+  Facebook链接: "/images/facebook.png",
+  领英链接: "/images/foo1.png",
+  QQ: "/images/foo2.png",
+  微信: "/images/foo3.png"
 };
 
 const modeMap: any = {
@@ -104,7 +104,7 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
       </div>
       <div class="footer_section">
         <div class="footer_left">
-          <img src="images/logo.png" />
+          <img src="/images/logo.png" />
           <div class="footer_con">
             {footerContactList.map((item: any) => (
               <div class="footer_con_info">
@@ -150,35 +150,35 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
   </div>
   <div class="fu">
     <div class="fu_box fu_liu" onclick="openLiu">
-      <img src="images/fu4.png" />
+      <img src="/images/fu4.png" />
     </div>
     <div class="fu_box pc1">
-      <img src="images/fu1.png" />
+      <img src="/images/fu1.png" />
       {phoneItem && phoneItem.details && (
         <div class="fu_info" set:html={phoneItem.details}></div>
       )}
     </div>
     <div class="fu_box sp">
-      <a :href="phoneTel ? 'tel:' + phoneTel : 'javascript:;'"><img src="images/fu1.png" /></a>
+      <a :href="phoneTel ? 'tel:' + phoneTel : 'javascript:;'"><img src="/images/fu1.png" /></a>
     </div>
     <div class="fu_box">
-      <img src="images/fu2.png" />
+      <img src="/images/fu2.png" />
       {emailItem && emailItem.details && (
         <div class="fu_info" set:html={emailItem.details}></div>
       )}
     </div>
     <div class="fu_box fu_box2 top" onclick="backTop">
-      <img src="images/fu3.png" />
+      <img src="/images/fu3.png" />
       <span>TOP</span>
     </div>
     <div class="fu_box1 fu_box top" onclick="backTop">
-      <img src="images/fu5.png" />
+      <img src="/images/fu5.png" />
       <span>TOP</span>
     </div>
   </div>
   <div class="liu">
     <div class="liu_section" @click="openLiu">
-      <img src="images/chat.png" />
+      <img src="/images/chat.png" />
       <span class="liu_section_text">在线留言</span>
     </div>
     <div class="liu_model" :style="{ display: showLiu ? 'block' : 'none' }" @click="closeLiu"></div>
