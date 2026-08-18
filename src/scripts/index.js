@@ -27,20 +27,6 @@ $(document).ready(function () {
   });
 });
 $(function () {
-  $(".index_hezuo_text").each(function () {
-    var maxwidth = 130;
-    if ($(this).text().length > maxwidth) {
-      $(this).text($(this).text().substring(0, maxwidth));
-      $(this).html($(this).html() + '...');
-    }
-  });
-  $(".news_text").each(function () {
-    var maxwidth = 90;
-    if ($(this).text().length > maxwidth) {
-      $(this).text($(this).text().substring(0, maxwidth));
-      $(this).html($(this).html() + '...');
-    }
-  });
   $(".search_name").each(function () {
     var maxwidth = 18;
     if ($(this).text().length > maxwidth) {

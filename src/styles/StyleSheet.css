@@ -1073,6 +1073,10 @@ span {
 	margin-bottom: 10px;
 }
 .index_news_text {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	overflow: hidden;
 	font-size: 17px;
 	color: #444444;
 	line-height: 34px;
@@ -1185,6 +1189,10 @@ span {
 	float: right;
 }
 .index_hezuo_text {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 4;
+	overflow: hidden;
 	float: left;
 	width: 90%;
 	margin: 0 5%;
@@ -2211,6 +2219,10 @@ span {
 	margin-bottom: 5px;
 }
 .news_text {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	overflow: hidden;
 	font-size: 18px;
 	color: #444444;
 	line-height: 34px;

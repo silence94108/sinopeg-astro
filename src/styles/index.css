@@ -835,8 +835,6 @@
 	.index_news_text {
 		font-size: 16px;
 		line-height: 30px;
-		overflow: hidden;
-		height: 60px;
 	}
 
 	.index_news_box {
@@ -1491,8 +1489,6 @@
 	.index_news_text {
 		font-size: 14px;
 		line-height: 24px;
-		overflow: hidden;
-		height: 50px;
 	}
 
 	.index_news_box {
