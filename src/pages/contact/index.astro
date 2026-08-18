@@ -1,0 +1,57 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { requestData } from "../../lib/utils";
+
+// 联系分类：顶部联系方式、投诉建议等内容统一取这个分类下的数据
+const CONTACT_CATEGORY_ID = "6a16acfdb055ec6ea9349238";
+const bannerRes = requestData("category", {
+  data_type: "show",
+  id: CONTACT_CATEGORY_ID
+})
+const bannerImage = bannerRes && bannerRes.info && bannerRes.info.image_intro || "images/bg7.png";
+
+const contactList = requestData("contact", {
+  data_type: "list",
+  category_id: CONTACT_CATEGORY_ID,
+  sort: "sortAsc",
+  limit: -1
+}) || [];
+
+// 地图分类：工厂/总部地图点，bg_img 为默认图标，acImg 为选中图标
+const MAP_CATEGORY_ID = "6a1cefc7485fd200f815be33";
+---
+
+<BaseLayout>
+  <div class="banner">
+    <img src={bannerImage} alt="联系我们" />
+    <div class="zi zi1">
+      <div class="inner">
+        <div class="zi_left">
+          <div class="zi_box">
+            <span class="zi_zh">联系</span><span class="zi_en">Contact</span>
+          </div>
+        </div>
+        <div class="zi_right">
+          <a href="/" class="zi_home">首页</a><span class="zi_text">
+            > 联系</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="con_top">
+    <img src="images/bg7.png" class="con_bg1" alt="联系我们" />
+    <img src="images/bg7.png" class="con_bg2" alt="联系我们" />
+    <div class="inner">
+      <ul class="con_list">
+        {contactList.map((item: any) => (
+          <li class="con_item">
+            <img src={item.bg_img} style="width:80px;" alt={item.title || '联系我们'} />
+            <div class="con_top_box">
+              {item.details ? <span set:html={item.details}></span> : <span>{item.title}</span>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</BaseLayout>
