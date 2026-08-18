@@ -52,8 +52,25 @@ const newsList = requestData("news", {
 	recommend: true
 });
 
-const ABOUT_INFO_ID = "6a1e75a110b5fc178d494b8b";
+// 合作
 const COOPERATION_CATEGORY_ID = "6a22243737509051865330ed";
+const cooperationList = requestData("images", {
+	data_type: "list",
+	limit: -1,
+	sort: "sortDesc",
+	category_id: COOPERATION_CATEGORY_ID
+})
+            
+// 关于我们
+const ABOUT_INFO_ID = "6a1e75a110b5fc178d494b8b";
+const aboutRes = requestData("contact", {
+	data_type: "show",
+	id: ABOUT_INFO_ID
+})
+const aboutInfo = aboutRes && aboutRes.info
+
+// 站点信息
+const siteInfo = requestData("site")
 ---
 
 <BaseLayout tdk={tdk}>
@@ -201,5 +218,134 @@ const COOPERATION_CATEGORY_ID = "6a22243737509051865330ed";
 				<img src="images/jian2.png" class="index_pro_hide" />
 			</a>
 		</div>
+	</div>
+	<!-- 合作 -->
+	<div class="index_hezuo">
+		<div class="inner">
+			<div class="index_hezuo_title">
+				<span class="index_pro_en">COLLABORATION</span>
+				<h2 class="index_pro_zh">合作</h2>
+			</div>
+			{cooperationList.length && (
+				<div class="index_hezuo_banner pc">
+					<div class="swiper-container gallery-thumbs cooperation-thumbs-pc">
+						<div class="swiper-wrapper">
+							{cooperationList.map((item: any) => (
+								<div class="swiper-slide">
+									<img src={item.bg_img} alt={item.title} />
+								</div>
+							))}
+						</div>
+						<div class="index_hezuo_info">
+							<div class="swiper-pagination cooperation-pagination-pc"></div>
+							<div class="swiper-button-next swiper-button-white cooperation-next-pc"></div>
+							<div class="swiper-button-prev swiper-button-white cooperation-prev-pc"></div>
+						</div>
+					</div>
+					<div class="swiper-container gallery-top cooperation-top-pc">
+						<div class="swiper-wrapper">
+							{cooperationList.map((item: any) => (
+								<div class="swiper-slide">
+									<div class="index_hezuo_right clearfix">
+										<h3 class="index_hezuo_name">{ item.title }</h3>
+										<h3 class="index_hezuo_caption">——{ item.intro }</h3>
+										<img src="images/ju1.png" class="index_hezuo_bg1" />
+										<span class="index_hezuo_text">{ item.details }</span>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+				<div class="index_hezuo_banner spb">
+					<div class="swiper-container gallery-thumbs cooperation-thumbs-pad">
+						<div class="swiper-wrapper">
+							{cooperationList.map((item: any) => (
+								<div class="swiper-slide">
+									<img src={item.bg_img} alt={item.title} />
+								</div>
+							))}
+						</div>
+						<div class="index_hezuo_info">
+							<div class="swiper-pagination cooperation-pagination-pad"></div>
+							<div class="swiper-button-next swiper-button-white cooperation-next-pad"></div>
+							<div class="swiper-button-prev swiper-button-white cooperation-prev-pad"></div>
+						</div>
+					</div>
+					<div class="swiper-container gallery-top cooperation-top-pad">
+						<div class="swiper-wrapper">
+							{cooperationList.map((item: any) => (
+								<div class="swiper-slide">
+									<div class="index_hezuo_right clearfix">
+										<h3 class="index_hezuo_name">{ item.title }</h3>
+										<span class="index_hezuo_caption">——{ item.intro }</span>
+										<img src="images/ju1.png" class="index_hezuo_bg1" />
+										<span class="index_hezuo_text">{ item.details }</span>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+				<div class="index_hezuo_banner sp">
+					<div class="swiper-container gallery-thumbs cooperation-thumbs-sp">
+						<div class="swiper-wrapper">
+							{cooperationList.map((item: any) => (
+								<div class="swiper-slide">
+									<img src={item.bg_img} alt={item.title} />
+								</div>
+							))}
+						</div>
+						<div class="index_hezuo_info">
+							<div class="swiper-pagination cooperation-pagination-sp"></div>
+							<div class="swiper-button-next swiper-button-white cooperation-next-sp"></div>
+							<div class="swiper-button-prev swiper-button-white cooperation-prev-sp"></div>
+						</div>
+					</div>
+					<div class="swiper-container gallery-top cooperation-top-sp">
+						<div class="swiper-wrapper">
+							{cooperationList.map((item: any) => (
+								<div class="swiper-slide">
+									<div class="index_hezuo_right clearfix">
+										<h3 class="index_hezuo_name">{ item.title }</h3>
+										<span class="index_hezuo_caption">——{ item.intro }</span>
+										<img src="images/ju1.png" class="index_hezuo_bg1" />
+										<span class="index_hezuo_text">{ item.details }</span>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+			)}
+			{!cooperationList.length && (<div class="jzt2-empty">暂无合作内容</div>)}
+		</div>
+	</div>
+	<!-- 关于我们 -->
+	<div class="index_about">
+		<div class="index_about_title index_aboutsp">
+			<span class="index_pro_en">{ aboutInfo.intro || "About" }</span>
+			<h2 class="index_pro_zh">{ aboutInfo.title || "关于我们" }</h2>
+		</div>
+		<div class="inner">
+			<div class="index_about_left">
+				<div class="index_about_title index_aboutpc">
+					<span class="index_pro_en">{ aboutInfo.intro || "About" }</span>
+					<h3 class="index_pro_zh">{ aboutInfo.title || "关于我们" }</h3>
+				</div>
+				<h3 class="index_about_name">{ siteInfo.company_title || "厦门赛诺邦格生物科技股份有限公司" }</h3>
+				<span class="index_about_text" set:html={aboutInfo.details}></span>
+				<a href="contact.html" class="index_pro_more index_aboutpc">
+					<span>查看更多</span>
+					<img src="images/jian4.png" class="index_pro_show" />
+					<img src="images/jian2.png" class="index_pro_hide" />
+				</a>
+			</div>
+		</div>
+		<a href="contact.html" class="index_pro_more index_aboutsp">
+			<span>查看更多</span>
+			<img src="images/jian4.png" class="index_pro_show" />
+			<img src="images/jian2.png" class="index_pro_hide" />
+		</a>
 	</div>
 </BaseLayout>
