@@ -1238,6 +1238,10 @@
 		margin-left: 0;
 	}
 
+	.index_hezuo_banner {
+		flex-direction: column;
+		align-items: stretch;
+	}
 	.spb.index_hezuo_banner {
 		display: none;
 	}
