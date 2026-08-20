@@ -16,6 +16,10 @@ const isProductNav = (item: any) => {
   if (!item) return false;
   return item.title === "产品" || /project\.html/.test(item.link || "");
 };
+const getNavLink = (item: any) => {
+  if (isProductNav(item)) return "/project/";
+  return item.link && item.link.replace("./", "/").replace(".html", "");
+};
 
 const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a";
 const categories: any = requestData("category", {
@@ -29,12 +33,7 @@ const rootCategories: any = categories.filter((item: any) => item.pid === PRODUC
 const getChildren = (pid: any) => categories.filter((c: any) => c.pid === pid);
 const hasChildren = (id: any) => getChildren(id).length > 0;
 
-const getListLink = (id: string, parentId: string, rootId: string = "") => {
-  let link = `prolist.html?category_id=${id}`;
-  if (parentId) link += `&parent_id=${parentId}`;
-  if (rootId) link += `&root_id=${rootId}`;
-  return link;
-};
+const getListLink = (id: string) => `/project/${id}/`;
 
 ---
 
@@ -53,9 +52,7 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
               @mouseleave="isProductNav(item) ? onMegaLeave($event) : null"
             >
               <a
-                href={
-                  item.link && item.link.replace("./", "/").replace(".html", "")
-                }
+                href={getNavLink(item)}
                 class="nav_link"
                 target={item.target ? "_blank" : null}
                 rel={item.target ? "noopener noreferrer nofollow" : null}
@@ -72,7 +69,7 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
                     {rootCategories.map((root: any) => (
                       <div class="nav_mega_group">
                         <a
-                          href={`/project/${root.id}`}
+                          href={`/project/${root.id}/`}
                           class="nav_mega_title"
                         >
                           {root.title}
@@ -82,7 +79,7 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
                             {getChildren(root.id).map((child: any) => (
                               <div class="nav_mega_child_group">
                                 <a
-                                  href={getListLink(child.id, root.id)}
+                                  href={getListLink(child.id)}
                                   class="nav_mega_child_title"
                                 >
                                   {child.title}
@@ -91,11 +88,7 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
                                   <div class="nav_mega_grand_list">
                                     {getChildren(child.id).map((grand: any) => (
                                       <a
-                                        href={getListLink(
-                                          grand.id,
-                                          child.id,
-                                          root.id,
-                                        )}
+                                        href={getListLink(grand.id)}
                                         class="nav_mega_grand_child"
                                       >
                                         {grand.title}
@@ -203,7 +196,7 @@ const getListLink = (id: string, parentId: string, rootId: string = "") => {
               :key="root.id"
             >
               <div class="menu_link menu_link2">
-                <a :href="'project.html?category_id=' + root.id">{{ root.title }}</a>
+                <a :href="'/project/' + root.id + '/'">{{ root.title }}</a>
                 <span class="menu_jia" v-if="hasChildren(root.id)" @click.stop.prevent="toggleMobileRoot(root.id)">+</span>
                 <span class="menu_jian" v-if="hasChildren(root.id)" @click.stop.prevent="toggleMobileRoot(root.id)">-</span>
               </div>

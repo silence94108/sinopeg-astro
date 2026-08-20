@@ -1,0 +1,277 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageBanner from "../../layouts/PageBanner.astro";
+import ProductLeft from "../../layouts/ProductLeft.astro";
+import { getJsonData, requestData, rewriteProductLinks } from "../../lib/utils";
+
+const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a";
+
+export function getStaticPaths() {
+  const goods = requestData("goods");
+  return goods.map((item: any) => ({
+    params: { id: String(item.id) },
+    props: { summary: item },
+  }));
+}
+
+const { id } = Astro.params;
+const summary = Astro.props.summary || {};
+let info = summary;
+
+try {
+  info = getJsonData(`goods/${id}`);
+} catch {
+  info = summary;
+}
+
+const categories = requestData("category", {
+  data_type: "list",
+  limit: -1,
+  sort: "sortAsc",
+  type: "goods",
+});
+const categoryMap = new Map(
+  categories.map((item: any) => [String(item.id), item]),
+);
+const getCategoryPath = (categoryId: string) => {
+  const path: any[] = [];
+  const visited = new Set<string>();
+  let current = categoryMap.get(categoryId);
+
+  while (current && String(current.id) !== PRODUCT_PARENT_ID) {
+    const currentId = String(current.id);
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+    path.unshift(current);
+    current = categoryMap.get(String(current.pid));
+  }
+
+  return path;
+};
+
+const productCategoryIds = String(info.category_id || "")
+  .split(",")
+  .map((categoryId) => categoryId.trim())
+  .filter(Boolean);
+const currentCategoryId = productCategoryIds[0] || "";
+const categoryPath = currentCategoryId ? getCategoryPath(currentCategoryId) : [];
+const categoryLink = (categoryId: string) => `/project/${categoryId}/`;
+const productLink = (productId: string) => `/product/${productId}/`;
+const crumbs = [
+  { name: "产品", link: "/project/" },
+  ...categoryPath.map((item: any) => ({
+    name: item.title,
+    link: categoryLink(String(item.id)),
+  })),
+  { name: info.title || "产品详情" },
+];
+
+const siteInfo = requestData("site") || {};
+const productParent = categoryMap.get(PRODUCT_PARENT_ID);
+const bannerImage = productParent?.image_intro || "/images/bg7.png";
+const tdk = {
+  title: info.webTitle || `${info.title || "产品详情"} - ${siteInfo.title || ""}`,
+  keywords: info.webKey || info.keywords || siteInfo.keywords || "",
+  description: info.webDesc || info.intro || siteInfo.description || "",
+};
+const mainImage = info.bg_img || info.image_intro || info.productImages?.[0]?.url || "/images/pro1.png";
+const details = rewriteProductLinks(info.details || info.content || info.intro || "");
+const keywordList = String(info.keywords || info.webKey || "")
+  .split(/[,，;；]+/)
+  .map((keyword) => keyword.trim())
+  .filter(Boolean);
+
+const allGoods = requestData("goods")
+  .slice()
+  .sort((a: any, b: any) => Number(b.sort || 0) - Number(a.sort || 0));
+const currentIndex = allGoods.findIndex((item: any) => String(item.id) === String(id));
+const up = currentIndex > 0 ? allGoods[currentIndex - 1] : null;
+const down = currentIndex >= 0 && currentIndex < allGoods.length - 1
+  ? allGoods[currentIndex + 1]
+  : null;
+const recommendList = allGoods
+  .filter((item: any) => {
+    if (String(item.id) === String(id)) return false;
+    const itemCategoryIds = String(item.category_id || "").split(",");
+    return productCategoryIds.some((categoryId) => itemCategoryIds.includes(categoryId));
+  })
+  .slice(0, 10);
+---
+
+<BaseLayout tdk={tdk}>
+  <PageBanner
+    bannerImage={bannerImage}
+    titleZh="产品"
+    titleEn="Products"
+    crumbs={crumbs}
+  />
+  <div class="project_section">
+    <img src="/images/bg7.png" class="pro_bg1" alt="" />
+    <div class="block">
+      <div class="proj_bg"></div>
+      <div class="inner clearfix">
+        <ProductLeft currentId={currentCategoryId} />
+        <div class="right right1">
+          <div class="proex_top">
+            <div class="proex_photo">
+              <img src={mainImage} alt={info.title || "产品图片"} />
+            </div>
+            <div class="proex_top_box">
+              <h1 class="proex_top_title">{info.title}</h1>
+              {info.abbrName && <span class="proex_top_caption">产品简称：{info.abbrName}</span>}
+              {info.casNo && <span class="proex_top_caption">CAS no.：{info.casNo}</span>}
+              <div class="proex_top_info">
+                {info.molecularWeight && <span>分子量：{info.molecularWeight}</span>}
+                {info.packageSize && <span>包装尺寸：{info.packageSize}</span>}
+                {info.storageMethod && <span>储存：{info.storageMethod}</span>}
+              </div>
+              <div class="proex_top_left">
+                <a href="tel:4009189898" class="proex_top_link">
+                  <img src="/images/proex1.png" alt="" />
+                  <span>订购热线：400-918-9898</span>
+                </a>
+                <a href="/contact/" class="proex_top_link proex_top_link1">
+                  <img src="/images/proex2.png" alt="" />
+                  <span>留言咨询</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="pro_info" data-product-tabs>
+            <button type="button" class="pro_info_text pro_info_current" data-product-tab="description">产品描述</button>
+            <button type="button" class="pro_info_text" data-product-tab="recommend">推荐产品</button>
+          </div>
+          <div class="proex_section">
+            <div class="proex_block product_tab_panel" data-product-panel="description">
+              {details
+                ? <div class="proex_box jzt2-richtext" set:html={details}></div>
+                : <div class="jzt2-empty proex_box">暂无产品描述</div>}
+              {keywordList.length > 0 && (
+                <div class="proex_guan">
+                  <img src="/images/ico7.png" alt="" />
+                  <span class="proex_guan_title">关键词：</span>
+                  {keywordList.map((keyword) => <span class="proex_guan_text">{keyword}</span>)}
+                </div>
+              )}
+            </div>
+            <div class="proex_block product_tab_panel" data-product-panel="recommend" hidden>
+              <div class="right_tui_top">
+                <span class="right_tui_td1">产品编号</span>
+                <span class="right_tui_td2">产品名称</span>
+                <span class="right_tui_td3">产品简称</span>
+                <span class="right_tui_td4">CAS#</span>
+              </div>
+              <ul class="right_tui_list">
+                {recommendList.map((item: any) => (
+                  <li class="right_tui_item">
+                    <a href={productLink(String(item.id))} class="right_tui_link">
+                      <span class="right_tui_td1" data-label="产品编号">{item.productNo}</span>
+                      <span class="right_tui_td2" data-label="产品名称">{item.title}</span>
+                      <span class="right_tui_td3" data-label="产品简称">{item.abbrName}</span>
+                      <span class="right_tui_td4" data-label="CAS#">{item.casNo}</span>
+                    </a>
+                  </li>
+                ))}
+                {!recommendList.length && <li class="jzt2-empty">暂无推荐产品</li>}
+              </ul>
+            </div>
+          </div>
+          <div class="ex">
+            {up && <a href={productLink(String(up.id))} class="ex_link">上一篇 {up.title}</a>}
+            {down && <a href={productLink(String(down.id))} class="ex_link">下一篇 {down.title}</a>}
+          </div>
+        </div>
+        <div class="blank50"></div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-product-tabs]").forEach((tabs) => {
+    tabs.addEventListener("click", (event) => {
+      const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-product-tab]");
+      if (!target) return;
+      const tabName = target.dataset.productTab;
+      const section = tabs.nextElementSibling;
+
+      tabs.querySelectorAll<HTMLElement>("[data-product-tab]").forEach((tab) => {
+        tab.classList.toggle("pro_info_current", tab === target);
+      });
+      section?.querySelectorAll<HTMLElement>("[data-product-panel]").forEach((panel) => {
+        panel.hidden = panel.dataset.productPanel !== tabName;
+      });
+    });
+  });
+</script>
+
+<style>
+  .proex_photo {
+    padding: 0;
+  }
+
+  .proex_photo img {
+    height: auto;
+    object-fit: contain;
+  }
+
+  .proex_top_caption,
+  .proex_top_info span {
+    display: block;
+  }
+
+  .pro_info_text {
+    border: 0;
+  }
+
+  .product_tab_panel {
+    display: block;
+  }
+
+  .product_tab_panel[hidden] {
+    display: none;
+  }
+
+  .ex {
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (max-width: 767px) {
+    .right_tui_top {
+      display: none;
+    }
+
+    .right_tui_item {
+      padding: 0;
+    }
+
+    .right_tui_link {
+      display: block;
+      padding: 12px 0;
+    }
+
+    .right_tui_link span {
+      display: flex;
+      width: 100%;
+      padding: 3px 0;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .right_tui_link span::before {
+      content: attr(data-label) "：";
+      flex: 0 0 72px;
+      color: #666666;
+    }
+
+    .proex_guan {
+      height: auto;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  }
+</style>

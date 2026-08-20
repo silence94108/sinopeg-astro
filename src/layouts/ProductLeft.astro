@@ -35,7 +35,7 @@ const hasActiveDescendant = (id: string): boolean =>
 const isActive = (id: string) => currentIds.has(String(id));
 const isOpen = (id: string) => isActive(id) || hasActiveDescendant(String(id));
 const projectLink = (id: string) => `/project/${id}/`;
-const listLink = (id: string) => `prolist.html?category_id=${id}`;
+const listLink = (id: string) => `/project/${id}/`;
 ---
 
 <aside class="left" data-product-left>

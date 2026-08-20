@@ -84,7 +84,7 @@ const siteInfo = requestData("site")
 			<ul class={`index_pro_list clearfix ${proListClass()}`}>
 				{goodsCategories.map((item: any) => (
 					<li class="index_pro_item">
-						<a href={`project.html?category_id=${item.id}`} class="index_pro_link">
+						<a href={`/project/${item.id}/`} class="index_pro_link">
 							<div class="index_pro_photo"><img src={item.image_intro || 'images/g2.png'} alt={item.title} /></div>
 							<h3 class="index_pro_name">{ item.title }</h3>
 						</a>
@@ -100,7 +100,7 @@ const siteInfo = requestData("site")
 				)}
 				{!goodsCategories.length && (<li class="jzt2-empty">暂无产品分类</li>)}
 			</ul>
-			<a href="project.html" class="index_pro_more">
+			<a href="/project/" class="index_pro_more">
 				<span>查看更多</span>
 				<img src="images/jian4.png" class="index_pro_show" />
 				<img src="images/jian2.png" class="index_pro_hide" />

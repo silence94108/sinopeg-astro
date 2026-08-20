@@ -105,6 +105,32 @@ export function requestData(
   return filterDataList(api, params, source, cateJson)
 }
 
+/**
+ * 将旧站富文本里的产品链接转换为 Astro 页面路由。
+ * 分类详情内容来自后台，不能直接依赖编辑器是否已经更新链接。
+ */
+export function rewriteProductLinks(value: unknown): string {
+  let html = String(value ?? '')
+
+  html = html.replace(
+    /(?:https?:\/\/[^"'<>\s]+\/)?proex\.html\?id=([^&"'<>\s]+)/gi,
+    (_match, id: string) => `/product/${id}/`
+  )
+  html = html.replace(
+    /(?:https?:\/\/[^"'<>\s]+\/)?(?:project|prolist)\.html\?category_id=([^&"'<>\s]+)/gi,
+    (_match, id: string) => `/project/${id}/`
+  )
+  html = html.replace(
+    /(?:https?:\/\/[^"'<>\s]+\/)?project\.html/gi,
+    '/project/'
+  )
+  html = html.replace(
+    /(?:https?:\/\/[^"'<>\s]+\/)?prolist\.html/gi,
+    '/project/'
+  )
+  return html
+}
+
 type DateInput = string | number | Date
 
 /**

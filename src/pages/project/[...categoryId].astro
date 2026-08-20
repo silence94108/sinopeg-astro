@@ -2,55 +2,159 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PageBanner from "../../layouts/PageBanner.astro";
 import ProductLeft from "../../layouts/ProductLeft.astro";
-import { requestData } from "../../lib/utils";
+import { requestData, rewriteProductLinks } from "../../lib/utils";
 
-const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a"; // 产品分类的父级id
-export function getStaticPaths() {
-  const categories = requestData("category", {
-    data_type: "list",
-    limit: -1,
-    sort: "sortAsc",
-    type: "goods",
-    category_id: "6a16ba87f7cca976d042d56a",
-  });
+const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a";
+const PAGE_SIZE = 20;
 
-  return [
-    { params: { categoryId: undefined } },
-    ...categories.map((category: any) => ({
-      params: { categoryId: String(category.id) },
-    })),
-  ];
-}
-
-const { categoryId } = Astro.params;
 const allCategories = requestData("category", {
   data_type: "list",
   limit: -1,
   sort: "sortAsc",
   type: "goods",
-  category_id: PRODUCT_PARENT_ID,
 });
-const firstCategory = allCategories[0];
-const currentCategoryId = categoryId || String(firstCategory?.id || "");
-const parentData = requestData("category", {
-  data_type: "show",
-  limit: -1,
-  sort: "sortAsc",
-  type: "goods",
-  id: PRODUCT_PARENT_ID,
-});
-const parentInfo = (parentData && parentData.info) || {};
-const bannerImage = parentInfo.image_intro;
-const currentCategory =
-  allCategories.find((item: any) => String(item.id) === currentCategoryId) ||
-  firstCategory;
+const productParent = allCategories.find(
+  (item: any) => String(item.id) === PRODUCT_PARENT_ID,
+);
+const rootCategories = allCategories.filter(
+  (item: any) => String(item.pid) === PRODUCT_PARENT_ID,
+);
+const categoryMap = new Map(
+  allCategories.map((item: any) => [String(item.id), item]),
+);
+
+const getCategoryPath = (id: string) => {
+  const path: any[] = [];
+  const visited = new Set<string>();
+  let current = categoryMap.get(String(id));
+
+  while (current && String(current.id) !== PRODUCT_PARENT_ID) {
+    const currentId = String(current.id);
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+    path.unshift(current);
+    current = categoryMap.get(String(current.pid));
+  }
+
+  return path;
+};
+
+export function getStaticPaths() {
+  const productParentId = "6a16ba87f7cca976d042d56a";
+  const pageSize = 20;
+  const categories = requestData("category", {
+    data_type: "list",
+    limit: -1,
+    sort: "sortAsc",
+    type: "goods",
+  });
+  const productCategories = categories.filter(
+    (item: any) => String(item.id) !== productParentId,
+  );
+  const rootCategoryIds = new Set(
+    productCategories
+      .filter((item: any) => String(item.pid) === productParentId)
+      .map((item: any) => String(item.id)),
+  );
+  const goods = requestData("goods");
+  const goodsCountByCategory = new Map<string, number>();
+  goods.forEach((item: any) => {
+    String(item.category_id || "")
+      .split(",")
+      .map((id: string) => id.trim())
+      .filter(Boolean)
+      .forEach((id: string) => {
+        goodsCountByCategory.set(id, (goodsCountByCategory.get(id) || 0) + 1);
+      });
+  });
+  const paths: Array<{
+    params: { categoryId?: string };
+    props?: { page: number };
+  }> = [{ params: { categoryId: undefined }, props: { page: 1 } }];
+
+  productCategories.forEach((category: any) => {
+    const categoryId = String(category.id);
+    const pageCount = rootCategoryIds.has(categoryId)
+      ? 1
+      : Math.max(
+          1,
+          Math.ceil((goodsCountByCategory.get(categoryId) || 0) / pageSize),
+        );
+
+    paths.push({ params: { categoryId }, props: { page: 1 } });
+    for (let page = 2; page <= pageCount; page += 1) {
+      paths.push({
+        params: { categoryId: `${categoryId}/page/${page}` },
+        props: { page },
+      });
+    }
+  });
+
+  return paths;
+}
+
+const routeParts = String(Astro.params.categoryId || "")
+  .split("/")
+  .filter(Boolean);
+const requestedCategoryId = routeParts[0] || "";
+const currentCategory = requestedCategoryId
+  ? categoryMap.get(requestedCategoryId)
+  : rootCategories[0];
+
+if (requestedCategoryId && !currentCategory) {
+  return Astro.redirect("/project/");
+}
+
+const currentCategoryId = String(currentCategory?.id || "");
+const currentPath = currentCategoryId ? getCategoryPath(currentCategoryId) : [];
+const isRootCategory = String(currentCategory?.pid || "") === PRODUCT_PARENT_ID;
+const page = Math.max(1, Number(Astro.props.page || 1));
+const listResult = !isRootCategory && currentCategoryId
+  ? requestData("goods", {
+      data_type: "page",
+      page,
+      limit: PAGE_SIZE,
+      sort: "sortDesc",
+      category_id: currentCategoryId,
+    })
+  : { data: [], total: 0, last_page: 1 };
+const goodsList = listResult.data || [];
+const lastPage = listResult.last_page || 1;
+
+const categoryLink = (id: string) => `/project/${id}/`;
+const pageLink = (targetPage: number) =>
+  targetPage <= 1
+    ? categoryLink(currentCategoryId)
+    : `/project/${currentCategoryId}/page/${targetPage}/`;
+const productLink = (id: string) => `/product/${id}/`;
+const getPageNumbers = (currentPage: number, totalPages: number) => {
+  const pages = new Set([1, totalPages]);
+  for (let index = currentPage - 2; index <= currentPage + 2; index += 1) {
+    if (index > 0 && index <= totalPages) pages.add(index);
+  }
+  return Array.from(pages).sort((a, b) => a - b);
+};
+const pageNumbers = getPageNumbers(page, lastPage);
+
 const crumbs = [
-  { name: "产品", link: "/project/" },
-  ...(currentCategory ? [{ name: currentCategory.title }] : []),
+  { name: "产品", link: currentPath.length ? "/project/" : undefined },
+  ...currentPath.map((item: any, index: number) => ({
+    name: item.title,
+    link: index === currentPath.length - 1 ? undefined : categoryLink(String(item.id)),
+  })),
 ];
+const siteInfo = requestData("site") || {};
+const tdk = {
+  title: currentCategory?.webTitle ||
+    `${currentCategory?.title || "产品"} - ${siteInfo.title || ""}`.replace(/\s*-\s*$/, ""),
+  keywords: currentCategory?.webKey || siteInfo.keywords || "",
+  description: currentCategory?.webDesc || siteInfo.description || "",
+};
+const bannerImage = productParent?.image_intro || "/images/bg7.png";
+const categoryDetails = rewriteProductLinks(currentCategory?.details || "");
 ---
 
-<BaseLayout>
+<BaseLayout tdk={tdk}>
   <PageBanner
     bannerImage={bannerImage}
     titleZh="产品"
@@ -58,26 +162,113 @@ const crumbs = [
     crumbs={crumbs}
   />
   <div class="project_section">
-    <img src="/images/bg7.png" class="pro_bg1" />
+    <img src="/images/bg7.png" class="pro_bg1" alt="" />
     <div class="block">
       <div class="proj_bg"></div>
       <div class="inner clearfix">
         <ProductLeft currentId={currentCategoryId} />
-        <div class="right">
-          <div class="right_block">
-            <div class="right_area">
-              {currentCategory?.details ? (
-                <div class="right_area_box" set:html={currentCategory.details}></div>
-              ) : currentCategory ? (
-                <div class="jzt2-empty">暂无详细介绍</div>
-              ) : (
-                <div class="jzt2-empty">暂无产品分类</div>
-              )}
+        {isRootCategory ? (
+          <div class="right">
+            <div class="right_block">
+              <div class="right_area">
+                {categoryDetails ? (
+                  <div class="right_area_box jzt2-richtext" set:html={categoryDetails}></div>
+                ) : currentCategory ? (
+                  <div class="jzt2-empty">暂无详细介绍</div>
+                ) : (
+                  <div class="jzt2-empty">暂无产品分类</div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div class="right right1">
+            <div class="right_tui_title">{currentCategory?.title || "产品列表"}</div>
+            <div class="right_tui_top" role="row">
+              <span class="right_tui_td1" role="columnheader">产品编号</span>
+              <span class="right_tui_td2" role="columnheader">产品名称</span>
+              <span class="right_tui_td3" role="columnheader">产品简称</span>
+              <span class="right_tui_td4" role="columnheader">CAS#</span>
+            </div>
+            <ul class="right_tui_list">
+              {goodsList.map((item: any) => (
+                <li class="right_tui_item">
+                  <a href={productLink(String(item.id))} class="right_tui_link">
+                    <span class="right_tui_td1" data-label="产品编号">{item.productNo}</span>
+                    <span class="right_tui_td2" data-label="产品名称">{item.title}</span>
+                    <span class="right_tui_td3" data-label="产品简称">{item.abbrName}</span>
+                    <span class="right_tui_td4" data-label="CAS#">{item.casNo}</span>
+                  </a>
+                </li>
+              ))}
+              {!goodsList.length && <li class="jzt2-empty right_tui_empty">暂无产品内容</li>}
+            </ul>
+            {lastPage > 1 && (
+              <nav class="fan" aria-label="产品列表分页">
+                {page > 1 && <a href={pageLink(page - 1)}>上一页</a>}
+                {pageNumbers.map((pageNumber: number, index: number) => (
+                  <>
+                    {index > 0 && pageNumber - pageNumbers[index - 1] > 1 && <span>...</span>}
+                    <a
+                      href={pageLink(pageNumber)}
+                      class={pageNumber === page ? "select" : undefined}
+                      aria-current={pageNumber === page ? "page" : undefined}
+                    >
+                      {pageNumber}
+                    </a>
+                  </>
+                ))}
+                {page < lastPage && <a href={pageLink(page + 1)}>下一页</a>}
+              </nav>
+            )}
+          </div>
+        )}
         <div class="blank50"></div>
       </div>
     </div>
   </div>
 </BaseLayout>
+
+<style>
+  .right_tui_empty {
+    padding: 20px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .fan .select {
+    color: #1459a8;
+    border-bottom-color: #1459a8;
+  }
+
+  @media (max-width: 767px) {
+    .right_tui_top {
+      display: none;
+    }
+
+    .right_tui_item {
+      padding: 0;
+    }
+
+    .right_tui_link {
+      display: block;
+      padding: 12px 0;
+    }
+
+    .right_tui_link span {
+      display: flex;
+      width: 100%;
+      padding: 3px 0;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .right_tui_link span::before {
+      content: attr(data-label) "：";
+      flex: 0 0 72px;
+      color: #666666;
+    }
+  }
+</style>
