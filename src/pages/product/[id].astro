@@ -56,7 +56,10 @@ const productCategoryIds = String(info.category_id || "")
 const currentCategoryId = productCategoryIds[0] || "";
 const categoryPath = currentCategoryId ? getCategoryPath(currentCategoryId) : [];
 const categoryLink = (categoryId: string) => `/project/${categoryId}/`;
-const productLink = (productId: string) => `/product/${productId}/`;
+const productLink = (productId: string, categoryId = currentCategoryId) => {
+  const query = categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : "";
+  return `/product/${productId}/${query}`;
+};
 const crumbs = [
   { name: "产品", link: "/project/" },
   ...categoryPath.map((item: any) => ({
@@ -84,11 +87,39 @@ const keywordList = String(info.keywords || info.webKey || "")
 const allGoods = requestData("goods")
   .slice()
   .sort((a: any, b: any) => Number(b.sort || 0) - Number(a.sort || 0));
-const currentIndex = allGoods.findIndex((item: any) => String(item.id) === String(id));
-const up = currentIndex > 0 ? allGoods[currentIndex - 1] : null;
-const down = currentIndex >= 0 && currentIndex < allGoods.length - 1
-  ? allGoods[currentIndex + 1]
+
+const getCategoryGoods = (categoryId: string) => allGoods.filter((item: any) =>
+  String(item.category_id || "")
+    .split(",")
+    .map((itemCategoryId) => itemCategoryId.trim())
+    .includes(categoryId),
+);
+
+const toNeighbor = (item: any) => item
+  ? { id: String(item.id), title: String(item.title || "") }
   : null;
+
+// 上下篇沿用当前产品的分类入口，避免多分类产品跨分类跳转。
+const categoryGoods = currentCategoryId
+  ? getCategoryGoods(currentCategoryId)
+  : allGoods;
+const currentIndex = categoryGoods.findIndex(
+  (item: any) => String(item.id) === String(id),
+);
+const up = currentIndex > 0 ? categoryGoods[currentIndex - 1] : null;
+const down = currentIndex >= 0 && currentIndex < categoryGoods.length - 1
+  ? categoryGoods[currentIndex + 1]
+  : null;
+const neighborByCategory = Object.fromEntries(
+  productCategoryIds.map((categoryId) => {
+    const goods = getCategoryGoods(categoryId);
+    const index = goods.findIndex((item: any) => String(item.id) === String(id));
+    return [categoryId, {
+      up: index > 0 ? toNeighbor(goods[index - 1]) : null,
+      down: index >= 0 && index < goods.length - 1 ? toNeighbor(goods[index + 1]) : null,
+    }];
+  }),
+);
 const recommendList = allGoods
   .filter((item: any) => {
     if (String(item.id) === String(id)) return false;
@@ -112,8 +143,11 @@ const recommendList = allGoods
       <div class="inner clearfix">
         <ProductLeft currentId={currentCategoryId} />
         <div class="right right1">
-          <div class="proex_top">
-            <div class="proex_photo">
+          <div class="proex_top product-photo-preview">
+            <div class="small_water">
+              <img src={mainImage} alt={info.title || "产品图片"} />
+            </div>
+            <div class="big" aria-hidden="true">
               <img src={mainImage} alt={info.title || "产品图片"} />
             </div>
             <div class="proex_top_box">
@@ -177,9 +211,19 @@ const recommendList = allGoods
               </ul>
             </div>
           </div>
-          <div class="ex">
-            {up && <a href={productLink(String(up.id))} class="ex_link">上一篇 {up.title}</a>}
-            {down && <a href={productLink(String(down.id))} class="ex_link">下一篇 {down.title}</a>}
+          <div class="ex" data-product-neighbors={JSON.stringify(neighborByCategory)}>
+            <a
+              href={up ? productLink(String(up.id)) : "#"}
+              class="ex_link"
+              data-product-neighbor="up"
+              hidden={!up}
+            >上一篇 {up?.title}</a>
+            <a
+              href={down ? productLink(String(down.id)) : "#"}
+              class="ex_link"
+              data-product-neighbor="down"
+              hidden={!down}
+            >下一篇 {down?.title}</a>
           </div>
         </div>
         <div class="blank50"></div>
@@ -189,6 +233,29 @@ const recommendList = allGoods
 </BaseLayout>
 
 <script>
+  const updateProductNeighbors = () => {
+    const container = document.querySelector<HTMLElement>("[data-product-neighbors]");
+    if (!container) return;
+    const categoryId = new URLSearchParams(window.location.search).get("category_id");
+    const neighborByCategory = JSON.parse(container.dataset.productNeighbors || "{}");
+    const neighbors = categoryId && neighborByCategory[categoryId];
+    if (!neighbors) return;
+
+    (["up", "down"] as const).forEach((direction) => {
+      const link = container.querySelector<HTMLAnchorElement>(
+        `[data-product-neighbor="${direction}"]`,
+      );
+      if (!link) return;
+      const item = neighbors[direction];
+      link.hidden = !item;
+      if (!item) return;
+      link.href = `/product/${item.id}/?category_id=${encodeURIComponent(categoryId)}`;
+      link.textContent = `${direction === "up" ? "上一篇" : "下一篇"} ${item.title}`;
+    });
+  };
+
+  updateProductNeighbors();
+
   document.querySelectorAll<HTMLElement>("[data-product-tabs]").forEach((tabs) => {
     tabs.addEventListener("click", (event) => {
       const target = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-product-tab]");
@@ -207,13 +274,44 @@ const recommendList = allGoods
 </script>
 
 <style>
-  .proex_photo {
-    padding: 0;
+  /* 与旧版 Vue 详情页一致：悬浮小图时，在左上方弹出整图预览。 */
+  .product-photo-preview {
+    position: relative;
   }
 
-  .proex_photo img {
-    height: auto;
+  .small_water {
+    position: relative;
+    width: 30%;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .small_water > img {
+    width: 100%;
+    height: 100%;
+    display: block;
     object-fit: contain;
+  }
+
+  .big {
+    position: absolute;
+    left: -38%;
+    top: -420px;
+    width: 800px;
+    height: 400px;
+    border: 1px solid #cccccc;
+    overflow: hidden;
+    background: #ffffff;
+    z-index: 20;
+    display: none;
+  }
+
+  .small_water:hover + .big {
+    display: block;
+  }
+
+  .big > img {
+    max-width: 100%;
   }
 
   .proex_top_caption,
@@ -239,6 +337,14 @@ const recommendList = allGoods
   }
 
   @media (max-width: 767px) {
+    .small_water {
+      width: 100%;
+    }
+
+    .big {
+      display: none !important;
+    }
+
     .right_tui_top {
       display: none;
     }

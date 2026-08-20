@@ -126,7 +126,8 @@ const pageLink = (targetPage: number) =>
   targetPage <= 1
     ? categoryLink(currentCategoryId)
     : `/project/${currentCategoryId}/page/${targetPage}/`;
-const productLink = (id: string) => `/product/${id}/`;
+const productLink = (id: string) =>
+  `/product/${id}/?category_id=${encodeURIComponent(currentCategoryId)}`;
 const getPageNumbers = (currentPage: number, totalPages: number) => {
   const pages = new Set([1, totalPages]);
   for (let index = currentPage - 2; index <= currentPage + 2; index += 1) {
