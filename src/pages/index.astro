@@ -349,7 +349,11 @@ const siteInfo = requestData("site")
 	const techPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-tech-panel]"));
 	const selectTech = (index: string) => {
 		techItems.forEach((item) => item.classList.toggle("index_tech_current", item.dataset.techIndex === index));
-		techPanels.forEach((panel) => { panel.hidden = panel.dataset.techPanel !== index; });
+		techPanels.forEach((panel) => {
+			const active = panel.dataset.techPanel === index;
+			panel.hidden = !active;
+			panel.style.display = active ? "block" : "none";
+		});
 	};
 	techItems.forEach((item) => {
 		item.addEventListener("click", () => selectTech(item.dataset.techIndex || "0"));
@@ -358,3 +362,9 @@ const siteInfo = requestData("site")
 		});
 	});
 </script>
+
+<style>
+	/* The legacy stylesheet exposes the first panel with :first-of-type; hidden panels must win after tab changes. */
+	.index_tech_area[hidden] { display: none !important; }
+	.index_tech_area:not([hidden]) { display: block; }
+</style>
