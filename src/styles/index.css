@@ -253,6 +253,8 @@
 
 .fu_box {
 	width: 45px;
+	background: none;
+	padding: 0;
 }
 
 .top img {
