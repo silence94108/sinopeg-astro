@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout tdk={{ title: '产品搜索 - 赛诺邦格' }}>
+  <section class="search inner">
+    <h1 class="search_title">产品搜索</h1>
+    <form class="search_form" action="/search/" method="get">
+      <label class="search_form_text" for="search-key">关键词</label>
+      <input id="search-key" class="search_form_input" type="search" name="key" autocomplete="off" />
+      <button class="search_form_btu" type="submit">搜索</button>
+    </form>
+    <p class="serach_caption" data-search-caption></p>
+    <ul class="search_list clearfix" data-search-results></ul>
+  </section>
+</BaseLayout>
+
+<script>
+  type SearchItem = { id: string; category_id: string; title: string; casNo: string; productNo: string; abbrName: string; searchText: string; intro: string; keywords: string; webKey: string; webDesc: string };
+  const input = document.querySelector<HTMLInputElement>("#search-key");
+  const list = document.querySelector<HTMLElement>("[data-search-results]");
+  const caption = document.querySelector<HTMLElement>("[data-search-caption]");
+  const keyword = new URLSearchParams(window.location.search).get("key")?.trim() || "";
+  if (input) input.value = keyword;
+  const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char] || char);
+  if (!keyword) {
+    if (caption) caption.textContent = "请输入产品名称、CAS号或产品编号";
+  } else {
+    fetch('/search-index.json').then((response) => response.json()).then((items: SearchItem[]) => {
+      const normalized = keyword.toLowerCase();
+      const results = items.filter((item) => Object.values(item).some((value) => String(value || '').toLowerCase().includes(normalized)));
+      if (caption) caption.innerHTML = `搜索 <font>${escapeHtml(keyword)}</font>，找到 ${results.length} 条结果`;
+      if (list) list.innerHTML = results.slice(0, 200).map((item) => {
+        const categoryId = String(item.category_id || '').split(',')[0];
+        return `<li class="search_item"><a href="/product/${encodeURIComponent(item.id)}/?category_id=${encodeURIComponent(categoryId)}"><div class="search_box"><h2 class="search_name">${escapeHtml(item.title)}</h2><p class="search_text"><span>编号：</span><font>${escapeHtml(item.productNo || '-')}</font></p><p class="search_text"><span>CAS：</span><font>${escapeHtml(item.casNo || '-')}</font></p></div></a></li>`;
+      }).join('') || '<li class="jzt2-empty">没有找到相关产品</li>';
+    }).catch(() => { if (caption) caption.textContent = '搜索数据加载失败，请稍后重试'; });
+  }
+</script>
