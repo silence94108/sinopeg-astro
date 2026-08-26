@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageBanner from '../../layouts/PageBanner.astro';
+import { requestData, timeStamp2String } from '../../lib/utils';
+export function getStaticPaths() { return requestData('news').map((item: any) => ({ params: { id: item.id } })); }
+const detail = requestData('news', { data_type: 'show', id: Astro.params.id, limit: -1, sort: 'sortDesc' });
+const item = detail.info || {};
+const banner = requestData('category', { data_type: 'show', id: '6a180222b3bb1862a238ca68' }).info?.image_intro || '/images/bg7.png';
+---
+<BaseLayout tdk={{ title: `${item.title || '新闻'} - 赛诺邦格` }}><PageBanner bannerImage={banner} titleZh="新闻" titleEn="News" crumbs={[{ name: '新闻', link: '/news/' }, { name: item.title || '详情' }]} /><article class="news_ex inner"><a class="news_ex_return" href="/news/">返回新闻列表</a><time class="news_ex_time">{timeStamp2String(item.create_time, 'Y-m-d')}</time><h1 class="news_ex_title">{item.title}</h1><div class="news_ex_section jzt2-richtext" set:html={item.details || item.content || item.intro || ''}></div></article></BaseLayout>

@@ -1,0 +1,5 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'; import PageBanner from '../../layouts/PageBanner.astro'; import { requestData } from '../../lib/utils';
+const ID='6a1576ad55a9703f216255b1'; const info=requestData('category',{data_type:'show',id:ID}).info||{}; const list=requestData('technology',{data_type:'list',limit:-1,sort:'sortDesc'});
+---
+<BaseLayout tdk={{ title: '技术 - 赛诺邦格' }}><PageBanner bannerImage={info.image_intro || '/images/bg7.png'} titleZh="技术" titleEn="Technology" crumbs={[{name:'技术'}]} /><div class="project_section"><div class="block"><div class="inner clearfix"><section class="right right1"><div class="right_tui_title">技术</div>{list.map((item:any)=><article class="tech_item"><a class="tech_link" href={`/tech/${item.id}/`}>{item.title}</a><div class="tech_con jzt2-richtext" set:html={item.details || item.intro || ''}></div></article>)}</section></div></div></div></BaseLayout>

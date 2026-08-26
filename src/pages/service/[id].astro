@@ -1,0 +1,5 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'; import PageBanner from '../../layouts/PageBanner.astro'; import { requestData } from '../../lib/utils';
+export function getStaticPaths(){return requestData('service').map((item:any)=>({params:{id:item.id}}));} const item=requestData('service',{data_type:'show',id:Astro.params.id}).info||{};
+---
+<BaseLayout tdk={{title:`${item.title || '服务'} - 赛诺邦格`}}><PageBanner titleZh="服务" titleEn="Service" crumbs={[{name:'服务',link:'/service/'},{name:item.title || '详情'}]} /><article class="inner service_block"><h1 class="service_title">{item.title}</h1><div class="service_area jzt2-richtext" set:html={item.details || item.content || item.intro || ''}></div></article></BaseLayout>
