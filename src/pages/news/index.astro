@@ -16,13 +16,21 @@ const categories = requestData('category', {
 const categoryId = Astro.url.searchParams.get('category_id') || '';
 const sort = (Astro.url.searchParams.get('sort') as any) || 'sortDesc';
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') || 1));
-const result = requestData('news', {
-  data_type: 'page',
-  page,
-  limit: 10,
-  sort,
-  ...(categoryId ? { category_id: categoryId } : {})
-} as any);
+const allNews = requestData('news', { data_type: 'list', limit: -1, sort } as any).map((item: any) => ({
+  id: item.id,
+  title: item.title,
+  intro: item.intro,
+  desc: item.desc,
+  bg_img: item.bg_img,
+  image_intro: item.image_intro,
+  create_time: item.create_time,
+  category_id: item.category_id,
+  sort: item.sort
+}));
+const filteredNews = categoryId
+  ? allNews.filter((item: any) => String(item.category_id || '').split(',').includes(categoryId))
+  : allNews;
+const result = { data: filteredNews.slice((page - 1) * 10, page * 10), last_page: Math.max(1, Math.ceil(filteredNews.length / 10)) };
 const banner = requestData('category', { data_type: 'show', id: NEWS_PARENT_ID }).info?.image_intro || '/images/bg7.png';
 const pageLink = (p: number) => `/news/?page=${p}${categoryId ? `&category_id=${encodeURIComponent(categoryId)}` : ''}&sort=${sort}`;
 const newsLink = (item: any) => `/news/${item.id}/?category_id=${encodeURIComponent(item.category_id || categoryId)}&sort=${sort}`;
@@ -41,7 +49,7 @@ const dateFor = (item: any) => timeStamp2String(item.create_time, 'Y-m-d');
           <span class="left_caption sp">新闻</span>
           <ul class="tech_list">
             {categories.map((item: any) => (
-              <li class={`tech_item${String(categoryId) === String(item.id) ? ' tech_current' : ''}`}>
+              <li data-category-id={item.id} class={`tech_item${String(categoryId) === String(item.id) ? ' tech_current' : ''}`}>
                 <a href={`/news/?category_id=${encodeURIComponent(item.id)}&sort=${sort}`} class="tech_link">{item.title}</a>
               </li>
             ))}
@@ -90,11 +98,17 @@ const dateFor = (item: any) => timeStamp2String(item.create_time, 'Y-m-d');
 
           {result.last_page > 1 && (
             <nav class="fan" aria-label="新闻分页">
-              {page > 1 && <a href={pageLink(page - 1)}>上一页</a>}
-              {Array.from({ length: result.last_page }, (_, i) => i + 1).map((p) => (
+              {page > 1 ? <a href={pageLink(page - 1)}>上一页</a> : <a>上一页</a>}
+              {(() => {
+                const visibleCount = Math.min(5, result.last_page);
+                const end = Math.min(result.last_page, Math.max(1, page - Math.floor(visibleCount / 2)) + visibleCount - 1);
+                const start = Math.max(1, end - visibleCount + 1);
+                return Array.from({ length: end - start + 1 }, (_, i) => start + i).map((p) => (
                 <a href={pageLink(p)} class={p === page ? 'select' : undefined} aria-current={p === page ? 'page' : undefined}>{p}</a>
-              ))}
-              {page < result.last_page && <a href={pageLink(page + 1)}>下一页</a>}
+                ));
+              })()}
+              {page < result.last_page ? <a href={pageLink(page + 1)}>下一页</a> : <a>下一页</a>}
+              <span>当前{Math.min(page, result.last_page)}/{result.last_page}页&nbsp;&nbsp;&nbsp;共{result.last_page}页</span>
             </nav>
           )}
         </section>
@@ -105,3 +119,121 @@ const dateFor = (item: any) => timeStamp2String(item.create_time, 'Y-m-d');
     </div>
   </div>
 </BaseLayout>
+
+<script define:vars={{ allNews }}>
+  const pageSize = 10;
+  const params = new URLSearchParams(window.location.search);
+  const categoryParam = params.get('category_id') || '';
+  const sortParam = params.get('sort') || 'sortDesc';
+  let currentPage = Math.max(1, Number(params.get('page') || 1));
+  const desktopList = document.querySelector('.news_list.pc');
+  const mobileList = document.querySelector('.news_list.news_sp');
+  const pagination = document.querySelector('.fan');
+  const categoryItems = document.querySelectorAll('.tech_item[data-category-id]');
+
+  const formatDate = (value) => {
+    const raw = String(value || '');
+    const date = /^\d+$/.test(raw) ? new Date(Number(raw)) : new Date(raw.replace(/-/g, '/'));
+    if (Number.isNaN(date.getTime())) return '';
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  };
+
+  const imageFor = (item) => item.bg_img || item.image_intro || '/images/news1.png';
+  const categoryMatch = (item, categoryId) => String(item.category_id || '').split(',').includes(categoryId);
+  const sortedNews = [...allNews].sort((a, b) => {
+    const left = Number(a.sort || 0);
+    const right = Number(b.sort || 0);
+    return sortParam === 'sortAsc' ? left - right : right - left;
+  });
+
+  function createNewsItem(item, mobile) {
+    const li = document.createElement('li');
+    li.className = 'news_item';
+    const link = document.createElement('a');
+    link.className = 'news_link';
+    link.href = `/news/${item.id}/?category_id=${encodeURIComponent(item.category_id || '')}&sort=${encodeURIComponent(sortParam)}`;
+    const box = document.createElement('div');
+    box.className = 'news_box';
+    if (mobile) {
+      const time = document.createElement('span');
+      time.className = 'news_time';
+      time.textContent = formatDate(item.create_time);
+      box.append(time);
+    }
+    const title = document.createElement('span');
+    title.className = 'news_title';
+    const heading = document.createElement('h2');
+    heading.textContent = item.title || '';
+    title.append(heading);
+    const text = document.createElement('span');
+    text.className = 'news_text';
+    text.textContent = item.intro || item.desc || '';
+    const more = document.createElement('span');
+    more.className = 'news_more';
+    more.textContent = '查看更多';
+    box.append(title, text, more);
+    const photo = document.createElement('div');
+    photo.className = 'news_photo';
+    const image = document.createElement('img');
+    image.src = imageFor(item);
+    image.alt = item.title || '';
+    image.loading = 'lazy';
+    photo.append(image);
+    link.append(box, photo);
+    li.append(link);
+    return li;
+  }
+
+  function renderList(list, items, mobile) {
+    if (!list) return;
+    list.replaceChildren();
+    if (!items.length) {
+      const empty = document.createElement('li');
+      empty.className = 'jzt2-empty';
+      empty.textContent = '暂无新闻内容';
+      list.append(empty);
+      return;
+    }
+    items.forEach(item => list.append(createNewsItem(item, mobile)));
+  }
+
+  function renderPagination(lastPage) {
+    if (!pagination) return;
+    pagination.replaceChildren();
+    const addLink = (label, page, disabled = false) => {
+      const link = document.createElement('a');
+      link.textContent = label;
+      if (!disabled) {
+        const query = new URLSearchParams();
+        query.set('page', String(page));
+        if (categoryParam) query.set('category_id', categoryParam);
+        if (sortParam) query.set('sort', sortParam);
+        link.href = `/news/?${query.toString()}`;
+      }
+      if (page === currentPage && label !== '上一页' && label !== '下一页') {
+        link.className = 'select';
+        link.setAttribute('aria-current', 'page');
+      }
+      pagination.append(link);
+    };
+    addLink('上一页', currentPage - 1, currentPage <= 1);
+    const visibleCount = Math.min(5, lastPage);
+    let start = Math.max(1, currentPage - Math.floor(visibleCount / 2));
+    const end = Math.min(lastPage, start + visibleCount - 1);
+    start = Math.max(1, end - visibleCount + 1);
+    for (let index = start; index <= end; index += 1) addLink(String(index), index);
+    addLink('下一页', currentPage + 1, currentPage >= lastPage);
+    const summary = document.createTextNode(`当前${currentPage}/${lastPage}页   共${lastPage}页`);
+    pagination.append(summary);
+    pagination.hidden = lastPage <= 1;
+  }
+
+  const filtered = categoryParam ? sortedNews.filter(item => categoryMatch(item, categoryParam)) : sortedNews;
+  const lastPage = Math.max(1, Math.ceil(filtered.length / pageSize));
+  currentPage = Math.min(currentPage, lastPage);
+  const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  renderList(desktopList, visible, false);
+  renderList(mobileList, visible, true);
+  renderPagination(lastPage);
+  categoryItems.forEach(item => item.classList.toggle('tech_current', item.dataset.categoryId === categoryParam));
+</script>
