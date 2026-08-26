@@ -1,0 +1,44 @@
+---
+import { requestData } from '../lib/utils';
+
+const CONTACT_CATEGORY_ID = '6a1ce5559ee5e071ea494363';
+const contact = requestData('category', { data_type: 'show', id: CONTACT_CATEGORY_ID }).info || {};
+const hotProducts = requestData('goods', { data_type: 'list', limit: -1, sort: 'sortDesc' })
+  .filter((item: any) => String(item.isHot) === '1' || item.isHot === true)
+  .slice(0, 10);
+const productLink = (item: any) => {
+  const categoryId = String(item.category_id || '').split(',')[0];
+  return `/product/${item.id}/${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ''}`;
+};
+---
+
+<div class="tech_sidebar">
+  {contact.image_intro && (
+    <a href="/contact/" class="tech_con tech_contact_link">
+      <img src={contact.image_intro} alt="联系我们" />
+    </a>
+  )}
+  <span class="tech_re">热门产品</span>
+  {hotProducts.length ? (
+    <ul class="tech_re_list">
+      {hotProducts.map((item: any) => (
+        <li class="tech_re_item">
+          <a href={productLink(item)} class="tech_re_link">
+            <span class="tech_re_info"><span class="tech_re_text">{item.title}</span></span>
+            <span class="tech_re_more">详情</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : <div class="tech_re_empty">暂无热门产品</div>}
+</div>
+
+<style>
+  .tech_contact_link { display: block; margin-bottom: 28px; }
+  .tech_contact_link img { width: 100%; height: auto; }
+  .tech_sidebar { padding: 0 20px 20px; }
+  @media (max-width: 767px) {
+    .tech_sidebar { padding: 20px 0; }
+    .tech_contact_link { margin-bottom: 24px; }
+  }
+</style>
