@@ -1,31 +1,107 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageBanner from '../../layouts/PageBanner.astro';
+import TechSidebar from '../../components/TechSidebar.astro';
 import { requestData, timeStamp2String } from '../../lib/utils';
 
 const NEWS_PARENT_ID = '6a180222b3bb1862a238ca68';
-const categories = requestData('category', { data_type: 'list', limit: -1, sort: 'sortAsc', type: 'content', category_id: NEWS_PARENT_ID, list_type: 'children' });
+const categories = requestData('category', {
+  data_type: 'list',
+  limit: -1,
+  sort: 'sortAsc',
+  type: 'content',
+  category_id: NEWS_PARENT_ID,
+  list_type: 'children'
+});
 const categoryId = Astro.url.searchParams.get('category_id') || '';
 const sort = (Astro.url.searchParams.get('sort') as any) || 'sortDesc';
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') || 1));
-const result = requestData('news', { data_type: 'page', page, limit: 10, sort, category_id: categoryId || undefined } as any);
+const result = requestData('news', {
+  data_type: 'page',
+  page,
+  limit: 10,
+  sort,
+  ...(categoryId ? { category_id: categoryId } : {})
+} as any);
 const banner = requestData('category', { data_type: 'show', id: NEWS_PARENT_ID }).info?.image_intro || '/images/bg7.png';
 const pageLink = (p: number) => `/news/?page=${p}${categoryId ? `&category_id=${encodeURIComponent(categoryId)}` : ''}&sort=${sort}`;
+const newsLink = (item: any) => `/news/${item.id}/?category_id=${encodeURIComponent(item.category_id || categoryId)}&sort=${sort}`;
+const imageFor = (item: any) => item.bg_img || item.image_intro || '/images/news1.png';
+const dateFor = (item: any) => timeStamp2String(item.create_time, 'Y-m-d');
 ---
+
 <BaseLayout tdk={{ title: '新闻 - 赛诺邦格', description: '赛诺邦格新闻资讯' }}>
   <PageBanner bannerImage={banner} titleZh="新闻" titleEn="News" crumbs={[{ name: '新闻' }]} />
-  <div class="project_section"><div class="block"><div class="inner clearfix">
-    <aside class="left">
-      <div class="left_title">新闻分类</div>
-      <ul class="left_list"><li><a href="/news/">全部新闻</a></li>{categories.map((item: any) => <li><a href={`/news/?category_id=${item.id}`}>{item.title}</a></li>)}</ul>
-    </aside>
-    <section class="right right1">
-      <div class="right_tui_title">新闻资讯</div>
-      <ul class="news_list clearfix">
-        {result.data.map((item: any) => <li class="news_item"><a class="news_link" href={`/news/${item.id}/`}><div class="news_box"><h3 class="news_title">{item.title}</h3><p class="news_text">{item.intro || ''}</p><span class="news_more">查看详情</span></div><time class="news_time">{timeStamp2String(item.create_time, 'Y-m-d')}</time></a></li>)}
-        {!result.data.length && <li class="jzt2-empty">暂无新闻内容</li>}
-      </ul>
-      {result.last_page > 1 && <nav class="fan">{page > 1 && <a href={pageLink(page - 1)}>上一页</a>}{Array.from({ length: result.last_page }, (_, i) => i + 1).map((p) => <a href={pageLink(p)} class={p === page ? 'select' : undefined}>{p}</a>)}{page < result.last_page && <a href={pageLink(page + 1)}>下一页</a>}</nav>}
-    </section>
-  </div></div></div>
+  <div class="project_section">
+    <img src="/images/bg7.png" class="pro_bg1" alt="" />
+    <div class="block">
+      <div class="proj_bg"></div>
+      <div class="inner clearfix">
+        <aside class="left">
+          <span class="left_caption sp">新闻</span>
+          <ul class="tech_list">
+            {categories.map((item: any) => (
+              <li class={`tech_item${String(categoryId) === String(item.id) ? ' tech_current' : ''}`}>
+                <a href={`/news/?category_id=${encodeURIComponent(item.id)}&sort=${sort}`} class="tech_link">{item.title}</a>
+              </li>
+            ))}
+            {!categories.length && <li class="jzt2-empty">暂无新闻分类</li>}
+          </ul>
+          <div class="pc1"><TechSidebar /></div>
+        </aside>
+
+        <section class="right right1">
+          <ul class="news_list pc">
+            {result.data.map((item: any) => (
+              <li class="news_item">
+                <a href={newsLink(item)} class="news_link">
+                  <div class="news_box">
+                    <span class="news_title"><h2>{item.title}</h2></span>
+                    <span class="news_text">{item.intro || item.desc || ''}</span>
+                    <span class="news_more">查看更多</span>
+                  </div>
+                  <div class="news_photo">
+                    <img src={imageFor(item)} alt={item.title} loading="lazy" />
+                  </div>
+                </a>
+              </li>
+            ))}
+            {!result.data.length && <li class="jzt2-empty">暂无新闻内容</li>}
+          </ul>
+
+          <ul class="news_list news_sp">
+            {result.data.map((item: any) => (
+              <li class="news_item">
+                <a href={newsLink(item)} class="news_link">
+                  <div class="news_box">
+                    <span class="news_time">{dateFor(item)}</span>
+                    <span class="news_title"><h2>{item.title}</h2></span>
+                    <span class="news_text">{item.intro || item.desc || ''}</span>
+                    <span class="news_more">查看更多</span>
+                  </div>
+                  <div class="news_photo">
+                    <img src={imageFor(item)} alt={item.title} loading="lazy" />
+                  </div>
+                </a>
+              </li>
+            ))}
+            {!result.data.length && <li class="jzt2-empty">暂无新闻内容</li>}
+          </ul>
+
+          {result.last_page > 1 && (
+            <nav class="fan" aria-label="新闻分页">
+              {page > 1 && <a href={pageLink(page - 1)}>上一页</a>}
+              {Array.from({ length: result.last_page }, (_, i) => i + 1).map((p) => (
+                <a href={pageLink(p)} class={p === page ? 'select' : undefined} aria-current={p === page ? 'page' : undefined}>{p}</a>
+              ))}
+              {page < result.last_page && <a href={pageLink(page + 1)}>下一页</a>}
+            </nav>
+          )}
+        </section>
+
+        <div class="sp"><TechSidebar /></div>
+        <div class="blank50"></div>
+      </div>
+    </div>
+  </div>
 </BaseLayout>
