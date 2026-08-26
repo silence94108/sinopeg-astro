@@ -116,7 +116,7 @@ const siteInfo = requestData("site")
 			</div>
 			<div class="index_tech_right spb">
 				{techList.map((item: any, index: number) => (
-					<div class={`index_tech_item ${index === currentTechIndex ? 'index_tech_current' : ''}`} onclick="setCurrentTech(index)">
+					<div class={`index_tech_item ${index === currentTechIndex ? 'index_tech_current' : ''}`} data-tech-index={index} role="button" tabindex="0">
 						<div class="index_tech_info">
 							<img src="images/tech2.png" />
 							<h3 class="index_tech_caption">{ item.title }</h3>
@@ -129,9 +129,9 @@ const siteInfo = requestData("site")
 				<img src="images/g16.png" class="index_tech_bg" />
 				<div class="index_tech_block">
 					{techList.map((item: any, index: number) => (
-						<div class="index_tech_area" v-if="index === currentTechIndex">
+						<div class="index_tech_area" data-tech-panel={index} hidden={index !== currentTechIndex}>
 							<div class="index_tech_box">
-								<a href={`'tech.html?id=${item.id}&category_id=${item.category_id}`}
+								<a href={`/tech/${item.id}/?category_id=${item.category_id}`}
 									class="index_tech_photo">
 									<img src={item.bg_img || 'images/tech1.png'} alt={item.title} />
 								</a>
@@ -144,7 +144,7 @@ const siteInfo = requestData("site")
 				</div>
 				<div class="index_tech_right pc">
 					{techList.map((item: any, index: number) => (
-					<div class={`index_tech_item ${index === currentTechIndex ? 'index_tech_current' : ''}`} onclick="setCurrentTech(index)">
+					<div class={`index_tech_item ${index === currentTechIndex ? 'index_tech_current' : ''}`} data-tech-index={index} role="button" tabindex="0">
 						<div class="index_tech_info">
 							<img src="images/tech2.png" />
 							<h3 class="index_tech_caption">{ item.title }</h3>
@@ -167,7 +167,7 @@ const siteInfo = requestData("site")
 				<ul class="index_service_list">
 					{serviceList.map((item: any) => (
 						<li class="index_service_item">
-							<a href={`service.html?id=${item.id}&category_id=${item.category_id}`} class="index_service_link">
+							<a href={`/service/${item.id}/?category_id=${item.category_id}`} class="index_service_link">
 								<div class="index_service_left">
 									<img src={item.bg_img} />
 									<h3>{ item.title }</h3>
@@ -196,7 +196,7 @@ const siteInfo = requestData("site")
 			<ul class="index_news_list">
 				{newsList.map((item: any) => (
 					<li class="index_news_item">
-						<a href={`news_ex.html?id=${item.id}&category_id=${item.category_id}&sort=sortAsc`} class="index_news_link">
+						<a href={`/news/${item.id}/?category_id=${item.category_id}`} class="index_news_link">
 							<img src={item.bg_img || 'images/news1.png'} alt={item.title} />
 							<div class="index_news_box">
 								<h3 class="index_news_title">{ item.title }</h3>
@@ -211,7 +211,7 @@ const siteInfo = requestData("site")
 				))}
 				{!newsList.length && (<li class="jzt2-empty">暂无新闻内容</li>)}
 			</ul>
-			<a href="news.html" class="index_pro_more">
+			<a href="/news/" class="index_pro_more">
 				<span>查看更多</span>
 				<img src="images/jian4.png" class="index_pro_show" />
 				<img src="images/jian2.png" class="index_pro_hide" />
@@ -276,14 +276,14 @@ const siteInfo = requestData("site")
 				</div>
 				<h3 class="index_about_name">{ siteInfo.company_title || "厦门赛诺邦格生物科技股份有限公司" }</h3>
 				<span class="index_about_text" set:html={aboutInfo.details}></span>
-				<a href="contact.html" class="index_pro_more index_aboutpc">
+				<a href="/contact/" class="index_pro_more index_aboutpc">
 					<span>查看更多</span>
 					<img src="images/jian4.png" class="index_pro_show" />
 					<img src="images/jian2.png" class="index_pro_hide" />
 				</a>
 			</div>
 		</div>
-		<a href="contact.html" class="index_pro_more index_aboutsp">
+		<a href="/contact/" class="index_pro_more index_aboutsp">
 			<span>查看更多</span>
 			<img src="images/jian4.png" class="index_pro_show" />
 			<img src="images/jian2.png" class="index_pro_hide" />
@@ -343,3 +343,18 @@ const siteInfo = requestData("site")
 		});
 	</script>
 </BaseLayout>
+
+<script>
+	const techItems = Array.from(document.querySelectorAll<HTMLElement>("[data-tech-index]"));
+	const techPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-tech-panel]"));
+	const selectTech = (index: string) => {
+		techItems.forEach((item) => item.classList.toggle("index_tech_current", item.dataset.techIndex === index));
+		techPanels.forEach((panel) => { panel.hidden = panel.dataset.techPanel !== index; });
+	};
+	techItems.forEach((item) => {
+		item.addEventListener("click", () => selectTech(item.dataset.techIndex || "0"));
+		item.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectTech(item.dataset.techIndex || "0"); }
+		});
+	});
+</script>

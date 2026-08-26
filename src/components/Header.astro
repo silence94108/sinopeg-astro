@@ -5,7 +5,7 @@ const siteInfo = requestData("site");
 
 const logoSrc = (siteInfo && siteInfo.pc_logo) || "/images/logo.png";
 const logoAlt = (siteInfo && siteInfo.title) || "Logo";
-const searchPath = `${import.meta.env.BASE_URL}search.html`;
+const searchPath = `${import.meta.env.BASE_URL}search/`;
 
 const menuList: any = requestData("nav", {
   sort: "sortAsc",
@@ -141,7 +141,8 @@ const getListLink = (id: string) => `/project/${id}/`;
   </div>
 </div>
 <div class="blank80"></div>
-<!-- <div class="header_sp">
+<!-- legacy mobile Vue markup retained as reference; replaced by the lightweight menu below
+<div class="header_sp">
   <div class="inner">
     <div class="header_sp_section">
       <div class="logo"><a href="index.html"><img :src="logoSrc" :alt="logoAlt"></a></div>
@@ -236,7 +237,35 @@ const getListLink = (id: string) => `/project/${id}/`;
       </li>
     </ul>
   </div>
-</div> -->
+</div>
+-->
+
+<div class="header_sp">
+  <div class="inner">
+    <div class="header_sp_section">
+      <div class="logo"><a href="/"><img src={logoSrc} alt={logoAlt} /></a></div>
+      <a href="https://www.sinopeg.com/" class="en" target="_blank" rel="noopener noreferrer"><img src="/images/en.png" alt="English" /></a>
+      <form class="header_form" action={searchPath} method="get">
+        <input type="text" name="key" class="header_form_input" placeholder="关键词搜索" />
+        <input type="submit" class="header_form_btu" value="" aria-label="搜索" />
+      </form>
+    </div>
+    <button class="header_menu" type="button"><span>菜单</span><img src="/images/nav1.png" alt="Menu" /></button>
+    <ul class="menu_list">
+      {menuList.map((item: any) => (
+        <li class="menu_item">
+          <a href={getNavLink(item)} class="menu_link" target={item.target ? '_blank' : undefined} rel={item.target ? 'noopener noreferrer' : undefined}>{item.title}</a>
+        </li>
+      ))}
+      {rootCategories.length > 0 && <li class="menu_item">
+        <div class="menu_link menu_link1"><a href="/project/">产品分类</a><span class="menu_jia">+</span><span class="menu_jian">−</span></div>
+        <div class="menu_er"><ul class="menu_er_list">
+          {rootCategories.map((root: any) => <li class="menu_san_item"><a href={`/project/${root.id}/`} class="menu_san_link">{root.title}</a></li>)}
+        </ul></div>
+      </li>}
+    </ul>
+  </div>
+</div>
 
 <script>
   import { initProductSearch } from '../scripts/productSearch';
@@ -246,5 +275,27 @@ const getListLink = (id: string) => `/project/${id}/`;
     form: '[data-header-search-form]',
     input: '[data-header-search-input]',
     list: '[data-header-search-list]',
+  });
+</script>
+
+<script>
+  const mobileHeader = document.querySelector<HTMLElement>(".header_sp");
+  const menuToggle = mobileHeader?.querySelector<HTMLElement>(".header_menu");
+  const menuList = mobileHeader?.querySelector<HTMLElement>(".menu_list");
+  menuToggle?.addEventListener("click", () => {
+    if (menuList) menuList.style.display = menuList.style.display === "block" ? "none" : "block";
+  });
+  mobileHeader?.querySelectorAll<HTMLElement>(".menu_jia, .menu_jian").forEach((toggle) => {
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const parent = toggle.closest<HTMLElement>(".menu_link, .menu_area, .menu_er_item");
+      const next = parent?.nextElementSibling as HTMLElement | null;
+      if (!next) return;
+      const isOpen = next.style.display === "block";
+      next.style.display = isOpen ? "none" : "block";
+      parent?.classList.toggle("menu_current", !isOpen);
+      parent?.classList.toggle("menu1_current", !isOpen);
+    });
   });
 </script>

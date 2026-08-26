@@ -1,5 +1,6 @@
 ---
 import { requestData } from "../lib/utils";
+import MessageForm from "./MessageForm.astro";
 
 const menuList: any = requestData("nav", {
   sort: "sortAsc",
@@ -95,7 +96,7 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
       <div class="footer_list">
         {menuList.map((item: any) => (
           <a
-            href={item.link.replace("./", "/").replace(".html", "")}
+            href={item.title === "产品" ? "/project/" : item.link.replace("./", "/").replace(".html", "/")}
             class="footer_link"
             target={item.target ? '_blank' : null}
             rel={item.target ? 'noopener noreferrer nofollow' : null}
@@ -146,12 +147,12 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
         </div>
       </div>
     </div>
-    <span class="small" set:html={recordInfo.details}></span>
+    <span class="small" set:html={recordInfo?.details}></span>
   </div>
   <div class="fu">
-    <div class="fu_box fu_liu" onclick="openLiu">
-      <img src="/images/fu4.png" />
-    </div>
+    <button class="fu_box fu_liu" type="button" data-open-message>
+      <img src="/images/fu4.png" alt="在线留言" />
+    </button>
     <div class="fu_box pc1">
       <img src="/images/fu1.png" />
       {phoneItem && phoneItem.details && (
@@ -159,7 +160,7 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
       )}
     </div>
     <div class="fu_box sp">
-      <a :href="phoneTel ? 'tel:' + phoneTel : 'javascript:;'"><img src="/images/fu1.png" /></a>
+      <a href={phoneItem?.details ? `tel:${String(phoneItem.details).replace(/<[^>]+>/g, '')}` : "#"}><img src="/images/fu1.png" alt="电话" /></a>
     </div>
     <div class="fu_box">
       <img src="/images/fu2.png" />
@@ -167,24 +168,36 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
         <div class="fu_info" set:html={emailItem.details}></div>
       )}
     </div>
-    <div class="fu_box fu_box2 top" onclick="backTop">
-      <img src="/images/fu3.png" />
+    <button class="fu_box fu_box2 top" type="button" data-back-top>
+      <img src="/images/fu3.png" alt="返回顶部" />
       <span>TOP</span>
-    </div>
-    <div class="fu_box1 fu_box top" onclick="backTop">
-      <img src="/images/fu5.png" />
+    </button>
+    <button class="fu_box1 fu_box top" type="button" data-back-top>
+      <img src="/images/fu5.png" alt="返回顶部" />
       <span>TOP</span>
-    </div>
+    </button>
   </div>
   <div class="liu">
-    <div class="liu_section" @click="openLiu">
+    <button class="liu_section" type="button" data-open-message>
       <img src="/images/chat.png" />
       <span class="liu_section_text">在线留言</span>
-    </div>
-    <div class="liu_model" :style="{ display: showLiu ? 'block' : 'none' }" @click="closeLiu"></div>
-    <div class="liu_block" :style="{ display: showLiu ? 'block' : 'none' }">
+    </button>
+    <div class="liu_model" data-message-overlay></div>
+    <div class="liu_block" data-message-dialog>
       <span class="liu_title">留言</span>
-      <message-form-app caption="如果您有任何疑问或建议，请给我们留言" @success="closeLiu"></message-form-app>
+      <MessageForm caption="如果您有任何疑问或建议，请给我们留言" />
     </div>
   </div>
 </div>
+
+<script>
+  const overlay = document.querySelector<HTMLElement>("[data-message-overlay]");
+  const dialog = document.querySelector<HTMLElement>("[data-message-dialog]");
+  const setMessageOpen = (open: boolean) => {
+    if (overlay) overlay.style.display = open ? "block" : "none";
+    if (dialog) dialog.style.display = open ? "block" : "none";
+  };
+  document.querySelectorAll("[data-open-message]").forEach((button) => button.addEventListener("click", () => setMessageOpen(true)));
+  overlay?.addEventListener("click", () => setMessageOpen(false));
+  document.querySelectorAll("[data-back-top]").forEach((button) => button.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" })));
+</script>
