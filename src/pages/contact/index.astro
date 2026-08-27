@@ -76,7 +76,7 @@ const currentMapUrl = getMapUrl(currentPoint);
           <li class="con_item">
             <img src={item.bg_img || "/images/bg7.png"} style="width:80px;" alt={item.title || "联系我们"} />
             <div class="con_top_box">
-              {item.details ? <div set:html={item.details}></div> : <span>{item.title}</span>}
+              {item.details ? <span set:html={item.details}></span> : <span>{item.title}</span>}
             </div>
           </li>
         ))}
@@ -161,6 +161,7 @@ const currentMapUrl = getMapUrl(currentPoint);
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
   }
 
   .map_visual_empty {
@@ -171,7 +172,12 @@ const currentMapUrl = getMapUrl(currentPoint);
     justify-content: center;
     color: #6c7a89;
     font-size: 18px;
-    background: #eef4f8;
+    background: linear-gradient(135deg, #eef4f8 0%, #dceaf5 100%);
+  }
+
+  .map_visual_img[hidden],
+  .map_visual_empty[hidden] {
+    display: none;
   }
 
   .map_area {
@@ -185,6 +191,7 @@ const currentMapUrl = getMapUrl(currentPoint);
     .map_visual {
       height: auto;
       min-height: 240px;
+      border-radius: 12px;
     }
 
     .map_visual_img {
