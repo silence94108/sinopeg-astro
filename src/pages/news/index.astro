@@ -13,7 +13,7 @@ const categories = requestData('category', {
   category_id: NEWS_PARENT_ID,
   list_type: 'children'
 });
-const categoryId = Astro.url.searchParams.get('category_id') || '';
+const categoryId = Astro.url.searchParams.get('category_id') || String(categories[0]?.id || '');
 const sort = (Astro.url.searchParams.get('sort') as any) || 'sortDesc';
 const page = Math.max(1, Number(Astro.url.searchParams.get('page') || 1));
 const allNews = requestData('news', { data_type: 'list', limit: -1, sort } as any).map((item: any) => ({
@@ -123,14 +123,13 @@ const dateFor = (item: any) => timeStamp2String(item.create_time, 'Y-m-d');
 <script define:vars={{ allNews }}>
   const pageSize = 10;
   const params = new URLSearchParams(window.location.search);
-  const categoryParam = params.get('category_id') || '';
+  const categoryItems = document.querySelectorAll('.tech_item[data-category-id]');
+  const categoryParam = params.get('category_id') || categoryItems[0]?.dataset.categoryId || '';
   const sortParam = params.get('sort') || 'sortDesc';
   let currentPage = Math.max(1, Number(params.get('page') || 1));
   const desktopList = document.querySelector('.news_list.pc');
   const mobileList = document.querySelector('.news_list.news_sp');
   const pagination = document.querySelector('.fan');
-  const categoryItems = document.querySelectorAll('.tech_item[data-category-id]');
-
   const formatDate = (value) => {
     const raw = String(value || '');
     const date = /^\d+$/.test(raw) ? new Date(Number(raw)) : new Date(raw.replace(/-/g, '/'));
