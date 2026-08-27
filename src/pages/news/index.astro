@@ -4,6 +4,12 @@ import PageBanner from '../../layouts/PageBanner.astro';
 import TechSidebar from '../../components/TechSidebar.astro';
 import { requestData, timeStamp2String } from '../../lib/utils';
 
+const tdk = {
+  title: '索马鲁肽中间体_索马鲁肽侧链_高分子定制合成-厦门赛诺邦格生物科技股份有限公司',
+  keywords: '索马鲁肽中间体,索马鲁肽侧链,高分子定制合成',
+  description: '厦门赛诺邦格提供索马鲁肽中间体、索马鲁肽侧链、高分子定制合成等产品服务，并实时更新相关的产品知识以及行业资讯内容。'
+}
+
 const NEWS_PARENT_ID = '6a180222b3bb1862a238ca68';
 const categories = requestData('category', {
   data_type: 'list',
@@ -38,7 +44,7 @@ const imageFor = (item: any) => item.bg_img || item.image_intro || '/images/news
 const dateFor = (item: any) => timeStamp2String(item.create_time, 'Y-m-d');
 ---
 
-<BaseLayout tdk={{ title: '新闻 - 赛诺邦格', description: '赛诺邦格新闻资讯' }}>
+<BaseLayout tdk={tdk}>
   <PageBanner bannerImage={banner} titleZh="新闻" titleEn="News" crumbs={[{ name: '新闻' }]} />
   <div class="project_section">
     <img src="/images/bg7.png" class="pro_bg1" alt="" />
