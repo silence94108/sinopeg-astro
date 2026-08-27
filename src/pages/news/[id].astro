@@ -1,10 +1,151 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageBanner from '../../layouts/PageBanner.astro';
-import { requestData, timeStamp2String } from '../../lib/utils';
-export function getStaticPaths() { return requestData('news').map((item: any) => ({ params: { id: item.id } })); }
-const detail = requestData('news', { data_type: 'show', id: Astro.params.id, limit: -1, sort: 'sortDesc' });
-const item = detail.info || {};
-const banner = requestData('category', { data_type: 'show', id: '6a180222b3bb1862a238ca68' }).info?.image_intro || '/images/bg7.png';
+import TechSidebar from '../../components/TechSidebar.astro';
+import { getJsonData, requestData } from '../../lib/utils';
+
+const NEWS_PARENT_ID = '6a180222b3bb1862a238ca68';
+
+export function getStaticPaths() {
+  return requestData('news').map((item: any) => ({
+    params: { id: String(item.id) },
+    props: { summary: item }
+  }));
+}
+
+const { id } = Astro.params;
+const summary = Astro.props.summary || {};
+let item = summary;
+
+try {
+  item = getJsonData(`content/${id}`);
+} catch {
+  item = summary;
+}
+
+const categories = requestData('category', {
+  data_type: 'list',
+  limit: -1,
+  sort: 'sortAsc',
+  type: 'content',
+  category_id: NEWS_PARENT_ID,
+  list_type: 'children'
+});
+const categoryIds = String(item.category_id || '')
+  .split(',')
+  .map((categoryId) => categoryId.trim())
+  .filter(Boolean);
+const currentCategory = categories.find((category: any) => categoryIds.includes(String(category.id))) || {};
+const currentCategoryId = String(currentCategory.id || categoryIds[0] || '');
+const parentCategory = requestData('category', { data_type: 'show', id: NEWS_PARENT_ID }).info || {};
+const banner = parentCategory.image_intro || '/images/bg7.png';
+const sort = 'sortDesc';
+const allNews = requestData('news', { data_type: 'list', limit: -1, sort });
+const categoryNews = currentCategoryId
+  ? allNews.filter((entry: any) => String(entry.category_id || '').split(',').includes(currentCategoryId))
+  : allNews;
+const currentIndex = categoryNews.findIndex((entry: any) => String(entry.id) === String(id));
+const up = currentIndex > 0 ? categoryNews[currentIndex - 1] : null;
+const down = currentIndex >= 0 && currentIndex < categoryNews.length - 1 ? categoryNews[currentIndex + 1] : null;
+const recommendNews = allNews
+  .filter((entry: any) => entry.recommend === true || String(entry.recommend) === '1')
+  .slice(0, 8);
+const newsListLink = currentCategoryId
+  ? `/news/?category_id=${encodeURIComponent(currentCategoryId)}&sort=${sort}`
+  : '/news/';
+const newsLink = (entry: any) => {
+  const categoryId = String(entry.category_id || '').split(',')[0] || currentCategoryId;
+  return `/news/${entry.id}/?category_id=${encodeURIComponent(categoryId)}&sort=${sort}`;
+};
+const crumbs = [
+  { name: '新闻', link: '/news/' },
+  ...(currentCategory.title ? [{ name: currentCategory.title, link: newsListLink }] : []),
+  { name: item.title || '详情' }
+];
 ---
-<BaseLayout tdk={{ title: `${item.title || '新闻'} - 赛诺邦格` }}><PageBanner bannerImage={banner} titleZh="新闻" titleEn="News" crumbs={[{ name: '新闻', link: '/news/' }, { name: item.title || '详情' }]} /><article class="news_ex inner"><a class="news_ex_return" href="/news/">返回新闻列表</a><time class="news_ex_time">{timeStamp2String(item.create_time, 'Y-m-d')}</time><h1 class="news_ex_title">{item.title}</h1><div class="news_ex_section jzt2-richtext" set:html={item.details || item.content || item.intro || ''}></div></article></BaseLayout>
+
+<BaseLayout tdk={{ title: item.webTitle || `${item.title || '新闻'} - 赛诺邦格`, keywords: item.webKey || '', description: item.webDesc || item.intro || '' }}>
+  <PageBanner bannerImage={banner} titleZh="新闻" titleEn="News" crumbs={crumbs} />
+  <div class="project_section">
+    <img src="/images/bg7.png" class="pro_bg1" alt="" />
+    <div class="block">
+      <div class="proj_bg"></div>
+      <div class="inner clearfix">
+        <aside class="left">
+          <span class="left_caption sp">新闻</span>
+          <ul class="tech_list">
+            {categories.map((category: any) => (
+              <li class={`tech_item${String(category.id) === currentCategoryId ? ' tech_current' : ''}`}>
+                <a href={`/news/?category_id=${encodeURIComponent(category.id)}&sort=${sort}`} class="tech_link">{category.title}</a>
+              </li>
+            ))}
+            {!categories.length && <li class="jzt2-empty">暂无新闻分类</li>}
+          </ul>
+          <div class="pc1"><TechSidebar /></div>
+        </aside>
+
+        <section class="right right1">
+          <div class="content_wrapper">
+            <div class="main_content">
+              <a href={newsListLink} class="news_ex_return">返回</a>
+              {item.id ? (
+                <div class="tech_box news_ex_section jzt2-richtext" set:html={item.details || item.content || item.intro || ''}></div>
+              ) : <div class="jzt2-empty">暂无新闻内容</div>}
+              {(up || down) && (
+                <div class="ex news_ex_section">
+                  {up && <a href={newsLink(up)} class="ex_link">上一篇 {up.title}</a>}
+                  {down && <a href={newsLink(down)} class="ex_link">下一篇 {down.title}</a>}
+                </div>
+              )}
+            </div>
+
+            <aside class="sidebar_content">
+              <div class="right_recommend">
+                <div class="right_recommend_title">相关推荐</div>
+                {recommendNews.length ? (
+                  <ul class="right_recommend_list">
+                    {recommendNews.map((entry: any) => (
+                      <li class="right_recommend_item">
+                        <a href={newsLink(entry)} class="right_recommend_link">{entry.title}</a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <div class="jzt2-empty">暂无推荐新闻</div>}
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <div class="sp"><TechSidebar /></div>
+        <div class="blank50"></div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .content_wrapper { display: flex; gap: 20px; align-items: flex-start; }
+  .main_content { flex: 1; min-width: 0; }
+  .sidebar_content { width: 300px; flex-shrink: 0; position: absolute; right: -25%; }
+  .right_recommend { background: #f9f9f9; border-radius: 5px; padding: 20px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); margin-bottom: 20px; }
+  .right_recommend_title { font-size: 18px; color: #333; border-bottom: 2px solid #1e6ba3; padding-bottom: 10px; margin-bottom: 15px; font-weight: bold; }
+  .right_recommend_list { list-style: none; padding: 0; margin: 0; }
+  .right_recommend_item { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #e0e0e0; }
+  .right_recommend_item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .right_recommend_link { display: block; color: #555; text-decoration: none; line-height: 1.5; transition: color 0.3s; position: relative; padding-left: 15px; }
+  .right_recommend_link::before { content: '•'; position: absolute; left: 0; color: #1e6ba3; }
+  .right_recommend_link:hover { color: #1e6ba3; }
+  .news_ex_section :global(h1) { font-size: 2em; line-height: 1.5; }
+  .news_ex_section :global(h2) { font-size: 1.5em; line-height: 1.5; }
+  .news_ex_section :global(h3) { font-size: 1.17em; line-height: 1.5; }
+  .news_ex_section :global(img) { max-width: 100%; height: auto; }
+  .ex { display: flex; flex-direction: column; align-items: flex-start; }
+
+  @media (max-width: 768px) {
+    .content_wrapper { flex-direction: column; }
+    .sidebar_content { width: 100%; position: static; }
+    .right_recommend { margin-top: 20px; padding: 15px; }
+    .right_recommend_title { font-size: 16px; }
+    .right_recommend_link { font-size: 14px; }
+  }
+</style>

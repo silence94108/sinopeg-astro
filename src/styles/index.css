@@ -1691,7 +1691,7 @@
 
 	.footer {
 		padding: 40px 0 15px 0;
-		background: url(../images/bg12.png) no-repeat center center;
+		background: url(/images/bg12.png) no-repeat center center;
 		background-size: cover;
 	}
 
@@ -1907,7 +1907,7 @@
 		padding: 10px 15px;
 		font-size: 16px;
 		color: #ffffff;
-		background: #1459A8 url(../images/jian11.png) no-repeat 97% center;
+		background: #1459A8 url(/images/jian11.png) no-repeat 97% center;
 		background-size: 15px;
 		width: 96%;
 		border-radius: 8px;
