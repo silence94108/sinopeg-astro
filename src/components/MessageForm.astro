@@ -1,12 +1,17 @@
 ---
+import { requestData } from '../lib/utils';
+
 const { layout, caption } = Astro.props;
 const inline = layout === "inline";
 const formClass = inline ? "con_section clearfix" : "liu_form";
 const infoClass = inline ? "con_info" : "liu_info";
 const buttonClass = inline ? "proex_form_btu" : "liu_btu";
+const siteId = requestData('site')?.site_id || '6a1530e4fd909f645a4db75e';
+const columnId = '6a154fefcbeb8235be3bde0d';
+const messageEndpoint = 'https://jzt2.china9.cn/api/message/addMsg';
 ---
 
-<form class={formClass} action="/api/submit" method="post" data-message-form>
+<form class={formClass} action={messageEndpoint} method="post" data-message-form data-site-id={siteId} data-column-id={columnId}>
   {caption && <span class="liu_caption">{caption}</span>}
   <div class={inline ? "con_block" : undefined}>
     <div class={infoClass}>
@@ -46,15 +51,46 @@ const buttonClass = inline ? "proex_form_btu" : "liu_btu";
       if (status) status.textContent = "提交中...";
 
       try {
+        const formData = new FormData(form);
+        const email = String(formData.get("email") || "").trim();
+        const content = String(formData.get("content") || "").trim();
+        const emailPattern = /^([a-zA-Z0-9]+[_|.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;
+        if (!email) throw new Error("请输入电子邮箱");
+        if (!emailPattern.test(email)) throw new Error("请输入正确的电子邮箱");
+        if (!content) throw new Error("请输入您的留言");
+
+        const payload = new URLSearchParams();
+        payload.set("site_id", form.dataset.siteId || "");
+        payload.set("column_id", form.dataset.columnId || "");
+        payload.set("content[单位]", String(formData.get("company") || ""));
+        payload.set("content[电子邮箱]", email);
+        payload.set("content[联系电话]", String(formData.get("phone") || ""));
+        payload.set("content[留言]", content);
+
+        try {
+          const ipResponse = await fetch("https://api.china9.cn/api/getRealIpAddr", { cache: "no-store" });
+          if (ipResponse.ok) {
+            const ip = (await ipResponse.text()).trim().replace(/^"|"$/g, "");
+            if (ip) payload.set("ip", ip);
+          }
+        } catch {
+          // IP 是辅助字段，获取失败不影响留言提交。
+        }
+
         const response = await fetch(form.action, {
           method: form.method,
-          body: new FormData(form),
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: payload,
         });
         if (!response.ok) throw new Error("submit failed");
+        const result = await response.json().catch(() => ({}));
+        if (result && result.code !== undefined && result.code !== 0 && result.code !== 200) {
+          throw new Error(result.msg || "留言提交失败");
+        }
         form.reset();
         if (status) status.textContent = "提交成功";
-      } catch {
-        if (status) status.textContent = "提交失败，请稍后再试";
+      } catch (error) {
+        if (status) status.textContent = error instanceof Error ? error.message : "提交失败，请稍后再试";
       } finally {
         if (button) button.disabled = false;
       }
