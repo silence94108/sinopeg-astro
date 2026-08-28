@@ -114,26 +114,7 @@ $(function () {
     $(".fu").show();
   })
 
-  $(".menu_link").click(function () {
-    // $(this).parents('.menu_item').toggleClass('menu_current');
-    $(this).parents('.menu_si_item').toggleClass('menu_current');
-  })
-  $(".menu_link2").click(function () {
-    $(this).parents('.menu_area').toggleClass('menu_current');
-  })
-  $(".menu_er_item").click(function () {
-    $(this).toggleClass('menu_er_current');
-  })
-  $(".menu_si_item").click(function () {
-    $(this).toggleClass('menu_current');
-  })
-  $(".header_menu").click(function () {
-    $(".menu_list").toggle();
-  })
-  $(".menu_link1").click(function () {
-    $(".menu_er").toggle();
-    $(this).toggleClass('menu1_current');
-  })
+  // 移动端菜单展开/收起由 Header.astro 自己的脚本负责，此处不再重复绑定。
 
 
 
