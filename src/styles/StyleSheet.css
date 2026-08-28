@@ -114,6 +114,7 @@ span {
 	justify-content: space-between;
 	align-items: center;
 	margin-bottom: 15px;
+	position: relative;
 }
 .header_sp .header_form {
 	justify-content: flex-end;
@@ -339,6 +340,21 @@ span {
 }
 .menu_current .menu_si_list {
 	display: block;
+}
+.mobile_search_suggestions {
+	position: absolute;
+	right: 0;
+	top: 100%;
+	width: 100%;
+	z-index: 12;
+}
+.mobile_search_suggestions ul {
+	max-height: 100px;
+	overflow-y: auto;
+	border: 1px solid #1459A8;
+	background: #EBEBEB;
+	padding: 10px;
+	border-radius: 5px;
 }
 
 

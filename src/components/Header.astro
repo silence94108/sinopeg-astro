@@ -146,10 +146,13 @@ const getListLink = (id: string) => `/project/${id}/`;
     <div class="header_sp_section">
       <div class="logo"><a href="/"><img src={logoSrc} alt={logoAlt} /></a></div>
       <a href="https://www.sinopeg.com/" class="en" target="_blank" rel="noopener noreferrer"><img src="/images/en.png" alt="English" /></a>
-      <form class="header_form" action={searchPath} method="get">
-        <input type="text" name="key" class="header_form_input" placeholder="关键词搜索" />
+      <form class="header_form" action={searchPath} method="get" data-mobile-search-form>
+        <input type="text" name="key" class="header_form_input" autocomplete="off" placeholder="关键词搜索" aria-controls="search_list3" aria-expanded="false" data-mobile-search-input />
         <input type="submit" class="header_form_btu" value="" aria-label="搜索" />
       </form>
+      <div class="mobile_search_suggestions">
+        <ul id="search_list3" hidden data-mobile-search-list></ul>
+      </div>
     </div>
     <button class="header_menu" type="button" aria-expanded="false"><span>菜单</span><img src="/images/nav1.png" alt="Menu" /></button>
     <ul class="menu_list">
@@ -201,6 +204,11 @@ const getListLink = (id: string) => `/project/${id}/`;
     form: '[data-header-search-form]',
     input: '[data-header-search-input]',
     list: '[data-header-search-list]',
+  });
+  initProductSearch({
+    form: '[data-mobile-search-form]',
+    input: '[data-mobile-search-input]',
+    list: '[data-mobile-search-list]',
   });
 </script>
 
