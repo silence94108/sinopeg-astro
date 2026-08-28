@@ -10,8 +10,13 @@ const item=requestData('service',{data_type:'show',id:Astro.params.id}).info||{}
 const category = requestData('category', { data_type: 'show', id: item.category_id || ID }).info || {};
 const root = item.category_id === ID ? category : requestData('category', { data_type: 'show', id: ID }).info || {};
 const serviceLink = (entry:any) => `/service/${entry.id}/?category_id=${encodeURIComponent(entry.category_id || ID)}`;
+const tdk = {
+  title: '聚乙二醇衍生物_核苷酸类药物中间体_嵌段共聚物-厦门赛诺邦格生物科技股份有限公司',
+  keywords: '聚乙二醇衍生物,核苷酸类药物中间体,嵌段共聚物',
+  description: '厦门赛诺邦格提供以下产品的定制合成服务：多分散聚乙二醇衍生物、单分散聚乙二醇衍生物、核苷酸药物中间体、嵌段共聚物等。'
+};
 ---
-<BaseLayout tdk={{title:`${item.title || '服务'} - 赛诺邦格`, description: item.intro || ''}}>
+<BaseLayout tdk={tdk}>
   <PageBanner bannerImage={category.image_intro || root.image_intro || '/images/bg7.png'} titleZh="服务" titleEn="Service" crumbs={[{name:'服务',link:'/service/'},{name:item.title || '详情'}]} />
   <div class="project_section"><img src="/images/bg7.png" class="pro_bg1" alt="" /><div class="block"><div class="proj_bg"></div><div class="inner clearfix">
     <aside class="left"><span class="left_caption sp">服务</span><ul class="tech_list">{list.map((entry:any)=><li class={`tech_item${String(entry.id)===String(item.id)?' tech_current':''}`}><a href={serviceLink(entry)} class="tech_link">{entry.title}</a></li>)}{!list.length && <li class="jzt2-empty">暂无服务内容</li>}</ul><div class="pc1"><TechSidebar /></div></aside>

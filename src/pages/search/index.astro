@@ -1,7 +1,14 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { requestData } from '../../lib/utils';
+const siteInfo = requestData('site') || {};
+const tdk = {
+  title: `搜索 - ${siteInfo.title || '厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商'}`,
+  keywords: siteInfo.keywords || '',
+  description: siteInfo.description || ''
+};
 ---
-<BaseLayout tdk={{ title: '产品搜索 - 赛诺邦格' }}>
+<BaseLayout tdk={tdk}>
   <section class="search inner">
     <h1 class="search_title">产品搜索</h1>
     <form class="search_form" action="/search/" method="get">

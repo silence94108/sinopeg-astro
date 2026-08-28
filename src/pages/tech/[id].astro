@@ -19,8 +19,14 @@ const bannerImage = category.image_intro || rootCategory.image_intro || '/images
 const detailHtml = item.details || item.content || item.intro || '';
 const dateText = item.create_time ? timeStamp2String(item.create_time, 'Y/m/d') : '';
 const detailLink = (entry: any) => `/tech/${entry.id}/?category_id=${encodeURIComponent(entry.category_id || categoryId)}`;
+const siteInfo = requestData('site') || {};
+const tdk = {
+  title: `技术 - ${siteInfo.title || '厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商'}`,
+  keywords: siteInfo.keywords || '',
+  description: siteInfo.description || ''
+};
 ---
-<BaseLayout tdk={{ title: `${item.title || '技术'} - 赛诺邦格`, description: item.intro || '' }}>
+<BaseLayout tdk={tdk}>
   <PageBanner
     bannerImage={bannerImage}
     titleZh="技术"

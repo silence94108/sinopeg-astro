@@ -48,9 +48,15 @@ const getMapUrl = (point: any) => {
 const currentPoint = mapPoints[0];
 const currentCover = getMapCover(currentPoint);
 const currentMapUrl = getMapUrl(currentPoint);
+const siteInfo = requestData('site') || {};
+const tdk = {
+  title: `联系 - ${siteInfo.title || '厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商'}`,
+  keywords: siteInfo.keywords || '',
+  description: siteInfo.description || ''
+};
 ---
 
-<BaseLayout>
+<BaseLayout tdk={tdk}>
   <div class="banner">
     <img src={bannerImage} alt="联系我们" />
     <div class="zi zi1">

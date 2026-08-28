@@ -9,8 +9,13 @@ const list = requestData('service', { data_type: 'list', limit: -1, sort: 'sortD
 const current = list[0] || {};
 const info = requestData('category', { data_type: 'show', id: ID }).info || {};
 const serviceLink = (item:any) => `/service/${item.id}/?category_id=${encodeURIComponent(item.category_id || ID)}`;
+const tdk = {
+  title: '聚乙二醇衍生物_核苷酸类药物中间体_嵌段共聚物-厦门赛诺邦格生物科技股份有限公司',
+  keywords: '聚乙二醇衍生物,核苷酸类药物中间体,嵌段共聚物',
+  description: '厦门赛诺邦格提供以下产品的定制合成服务：多分散聚乙二醇衍生物、单分散聚乙二醇衍生物、核苷酸药物中间体、嵌段共聚物等。'
+};
 ---
-<BaseLayout tdk={{ title: `${current.title || '服务'} - 赛诺邦格` }}>
+<BaseLayout tdk={tdk}>
   <PageBanner bannerImage={info.image_intro || '/images/bg7.png'} titleZh="服务" titleEn="Service" crumbs={[{ name: '服务', link: '/service/' }, ...(current.title ? [{ name: current.title }] : [])]} />
   <div class="project_section">
     <img src="/images/bg7.png" class="pro_bg1" alt="" />

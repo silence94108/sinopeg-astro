@@ -21,8 +21,14 @@ const bannerImage = category.image_intro || rootCategory.image_intro || '/images
 const detailHtml = current.details || current.content || current.intro || '';
 const formatDate = (value: any) => value ? timeStamp2String(value, 'Y/m/d') : '';
 const detailLink = (item: any) => `/tech/${item.id}/?category_id=${encodeURIComponent(item.category_id || categoryId)}`;
+const siteInfo = requestData('site') || {};
+const tdk = {
+  title: `技术 - ${siteInfo.title || '厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商'}`,
+  keywords: siteInfo.keywords || '',
+  description: siteInfo.description || ''
+};
 ---
-<BaseLayout tdk={{ title: `${current.title || '技术'} - 赛诺邦格`, description: current.intro || '' }}>
+<BaseLayout tdk={tdk}>
   <PageBanner bannerImage={bannerImage} titleZh="技术" titleEn="Technology" crumbs={[{ name: '技术', link: '/tech/' }, ...(current.title ? [{ name: current.title }] : [])]} />
   <div class="project_section">
     <img src="/images/bg7.png" class="pro_bg1" alt="" />
