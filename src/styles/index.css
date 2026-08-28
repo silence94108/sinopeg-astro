@@ -1238,6 +1238,12 @@
 		margin-left: 0;
 	}
 
+	/* 移动端导航展开后铺满视口，顶部品牌区仍沿用 .inner 的内缩宽度。 */
+	.header_sp .menu_list {
+		width: 100vw;
+		margin-left: calc((100% - 100vw) / 2);
+	}
+
 	.index_hezuo_banner {
 		flex-direction: column;
 		align-items: stretch;

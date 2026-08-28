@@ -141,105 +141,6 @@ const getListLink = (id: string) => `/project/${id}/`;
   </div>
 </div>
 <div class="blank80"></div>
-<!-- legacy mobile Vue markup retained as reference; replaced by the lightweight menu below
-<div class="header_sp">
-  <div class="inner">
-    <div class="header_sp_section">
-      <div class="logo"><a href="index.html"><img :src="logoSrc" :alt="logoAlt"></a></div>
-      <a href="https://www.sinopeg.com/" class="en" target="_blank" rel="noopener noreferrer nofollow">
-        <img src="images/en.png" />
-      </a>
-      <form class="header_form" @submit.prevent="submitSearch">
-        <input
-          type="text"
-          class="header_form_input"
-          autocomplete="off"
-          v-model="keyword"
-          placeholder="关键词搜索"
-          @input="updateMobileSuggestions"
-          @focus="updateMobileSuggestions"
-          @blur="hideMobileSuggestions"
-        />
-        <input type="button" class="header_form_btu" @click="submitSearch" />
-      </form>
-      <div style="position: absolute; right: 0; top: 57%; width: 100%; z-index: 12;">
-        <ul
-          id="search_list3"
-          v-show="mobileSuggestionsVisible && mobileSuggestions.length"
-          style="display: block; height: 100px; width: 100%; border: 1px solid #1459A8; background: #EBEBEB; padding: 10px; border-radius: 5px; overflow-y: scroll;"
-        >
-          <li
-            v-for="item in mobileSuggestions"
-            :key="'mobile-' + item"
-            style="font-size: 14px; cursor: pointer;"
-            @mousedown.prevent="selectSuggestion(item)"
-          >{{ item }}</li>
-        </ul>
-      </div>
-    </div>
-    <div class="header_menu">
-      <span>菜单</span>
-      <img src="images/nav1.png" />
-    </div>
-    <ul class="menu_list">
-      <li class="menu_item" v-for="item in menuList" :key="item.id || item.name">
-        <template v-if="isProductNav(item) && rootCategories.length">
-          <div class="menu_link menu_link1" :class="{ menu1_current: mobileProductOpen }">
-            <a :href="item.link">{{ item.name }}</a>
-            <span class="menu_jia" @click.stop.prevent="toggleMobileProduct">+</span>
-            <span class="menu_jian" @click.stop.prevent="toggleMobileProduct">-</span>
-          </div>
-          <div class="menu_er" :style="{ display: mobileProductOpen ? 'block' : 'none' }">
-            <div
-              class="menu_area"
-              :class="{ menu_current: isMobileRootOpen(root.id) }"
-              v-for="root in rootCategories"
-              :key="root.id"
-            >
-              <div class="menu_link menu_link2">
-                <a :href="'/project/' + root.id + '/'">{{ root.title }}</a>
-                <span class="menu_jia" v-if="hasChildren(root.id)" @click.stop.prevent="toggleMobileRoot(root.id)">+</span>
-                <span class="menu_jian" v-if="hasChildren(root.id)" @click.stop.prevent="toggleMobileRoot(root.id)">-</span>
-              </div>
-              <ul class="menu_er_list" v-if="hasChildren(root.id)" v-show="isMobileRootOpen(root.id)">
-                <template v-for="child in getChildren(root.id)" :key="child.id">
-                  <li
-                    class="menu_er_item"
-                    :class="{ menu_er_current: isMobileChildOpen(child.id) }"
-                    v-if="hasChildren(child.id)"
-                  >
-                    <div class="menu_link menu_link3">
-                      <a :href="getListLink(child.id, root.id)">{{ child.title }}</a>
-                      <span class="menu_jia" @click.stop.prevent="toggleMobileChild(child.id)">+</span>
-                      <span class="menu_jian" @click.stop.prevent="toggleMobileChild(child.id)">-</span>
-                    </div>
-                    <ul class="menu_san_list" v-show="isMobileChildOpen(child.id)">
-                      <li class="menu_san_item" v-for="grand in getChildren(child.id)" :key="grand.id">
-                        <a :href="getListLink(grand.id, child.id, root.id)" class="menu_san_link">{{ grand.title }}</a>
-                      </li>
-                    </ul>
-                  </li>
-                  <li class="menu_san_item" v-else>
-                    <a :href="getListLink(child.id, root.id)" class="menu_san_link">{{ child.title }}</a>
-                  </li>
-                </template>
-              </ul>
-            </div>
-          </div>
-        </template>
-        <a
-          v-else
-          :href="item.link"
-          class="menu_link"
-          :target="item.target ? '_blank' : null"
-          :rel="item.target ? 'noopener noreferrer' : null"
-        >{{ item.name }}</a>
-      </li>
-    </ul>
-  </div>
-</div>
--->
-
 <div class="header_sp">
   <div class="inner">
     <div class="header_sp_section">
@@ -250,19 +151,44 @@ const getListLink = (id: string) => `/project/${id}/`;
         <input type="submit" class="header_form_btu" value="" aria-label="搜索" />
       </form>
     </div>
-    <button class="header_menu" type="button"><span>菜单</span><img src="/images/nav1.png" alt="Menu" /></button>
+    <button class="header_menu" type="button" aria-expanded="false"><span>菜单</span><img src="/images/nav1.png" alt="Menu" /></button>
     <ul class="menu_list">
       {menuList.map((item: any) => (
         <li class="menu_item">
-          <a href={getNavLink(item)} class="menu_link" target={item.target ? '_blank' : undefined} rel={item.target ? 'noopener noreferrer' : undefined}>{item.title}</a>
+          {isProductNav(item) && rootCategories.length > 0 ? (
+            <>
+              <div class="menu_link menu_link1">
+                <a href={getNavLink(item)}>{item.title}</a>
+                <button type="button" class="menu_jia" aria-label="展开产品分类" aria-expanded="false">+</button>
+                <button type="button" class="menu_jian" aria-label="收起产品分类" aria-expanded="true">-</button>
+              </div>
+              <div class="menu_er">
+                {rootCategories.map((root: any) => (
+                  <div class="menu_area">
+                    <div class="menu_link menu_link2">
+                      <a href={`/project/${root.id}/`}>{root.title}</a>
+                      {hasChildren(root.id) && <><button type="button" class="menu_jia" aria-label={`展开${root.title}`} aria-expanded="false">+</button><button type="button" class="menu_jian" aria-label={`收起${root.title}`} aria-expanded="true">-</button></>}
+                    </div>
+                    {hasChildren(root.id) && <ul class="menu_er_list">
+                      {getChildren(root.id).map((child: any) => (
+                        hasChildren(child.id) ? (
+                          <li class="menu_er_item">
+                            <div class="menu_link menu_link3">
+                              <a href={getListLink(child.id)}>{child.title}</a>
+                              <button type="button" class="menu_jia" aria-label={`展开${child.title}`} aria-expanded="false">+</button><button type="button" class="menu_jian" aria-label={`收起${child.title}`} aria-expanded="true">-</button>
+                            </div>
+                            <ul class="menu_san_list">{getChildren(child.id).map((grand: any) => <li class="menu_san_item"><a href={getListLink(grand.id)} class="menu_san_link">{grand.title}</a></li>)}</ul>
+                          </li>
+                        ) : <li class="menu_san_item"><a href={getListLink(child.id)} class="menu_san_link">{child.title}</a></li>
+                      ))}
+                    </ul>}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : <a href={getNavLink(item)} class="menu_link" target={item.target ? '_blank' : undefined} rel={item.target ? 'noopener noreferrer' : undefined}>{item.title}</a>}
         </li>
       ))}
-      {rootCategories.length > 0 && <li class="menu_item">
-        <div class="menu_link menu_link1"><a href="/project/">产品分类</a><span class="menu_jia">+</span><span class="menu_jian">−</span></div>
-        <div class="menu_er"><ul class="menu_er_list">
-          {rootCategories.map((root: any) => <li class="menu_san_item"><a href={`/project/${root.id}/`} class="menu_san_link">{root.title}</a></li>)}
-        </ul></div>
-      </li>}
     </ul>
   </div>
 </div>
@@ -283,19 +209,31 @@ const getListLink = (id: string) => `/project/${id}/`;
   const menuToggle = mobileHeader?.querySelector<HTMLElement>(".header_menu");
   const menuList = mobileHeader?.querySelector<HTMLElement>(".menu_list");
   menuToggle?.addEventListener("click", () => {
-    if (menuList) menuList.style.display = menuList.style.display === "block" ? "none" : "block";
+    if (!menuList) return;
+    const isOpen = menuList.style.display === "block";
+    menuList.style.display = isOpen ? "none" : "block";
+    menuToggle.setAttribute("aria-expanded", String(!isOpen));
   });
   mobileHeader?.querySelectorAll<HTMLElement>(".menu_jia, .menu_jian").forEach((toggle) => {
     toggle.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const parent = toggle.closest<HTMLElement>(".menu_link, .menu_area, .menu_er_item");
+      const parent = toggle.closest<HTMLElement>(".menu_link");
       const next = parent?.nextElementSibling as HTMLElement | null;
       if (!next) return;
       const isOpen = next.style.display === "block";
       next.style.display = isOpen ? "none" : "block";
-      parent?.classList.toggle("menu_current", !isOpen);
-      parent?.classList.toggle("menu1_current", !isOpen);
+      if (parent?.classList.contains("menu_link2")) {
+        parent.closest<HTMLElement>(".menu_area")?.classList.toggle("menu_current", !isOpen);
+      } else if (parent?.classList.contains("menu_link3")) {
+        parent.closest<HTMLElement>(".menu_er_item")?.classList.toggle("menu_er_current", !isOpen);
+      } else {
+        parent?.classList.toggle("menu1_current", !isOpen);
+      }
+      parent?.setAttribute("aria-expanded", String(!isOpen));
+      parent?.querySelectorAll<HTMLElement>(".menu_jia, .menu_jian").forEach((button) => {
+        button.setAttribute("aria-expanded", String(!isOpen));
+      });
     });
   });
 </script>

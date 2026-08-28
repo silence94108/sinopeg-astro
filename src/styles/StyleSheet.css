@@ -131,6 +131,9 @@ span {
 	justify-content: space-between;
 	align-items: center;
 	cursor: pointer;
+	/* 原站此处是 div，改用 button 后需补回块级宽度与字体继承 */
+	width: 100%;
+	font-family: inherit;
 }
 .header_menu span {
 	font-size: 16px;
@@ -163,6 +166,15 @@ span {
 .menu_link > span {
 	font-size: 25px;
 	color: #222222;
+}
+.menu_link > button {
+	border: 0;
+	background: transparent;
+	padding: 0;
+	font-family: inherit;
+	font-size: 25px;
+	color: #222222;
+	cursor: pointer;
 }
 .menu_jian {
 	display: none;
