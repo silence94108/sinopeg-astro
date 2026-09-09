@@ -8,6 +8,8 @@ type SearchIndexItem = {
   casNo: string;
   productNo: string;
   abbrName: string;
+  searchAttribute: string;
+  bg_img: string;
   keywords: string;
   webKey: string;
   webDesc: string;
@@ -45,6 +47,8 @@ export const GET: APIRoute = () => {
     casNo: toText(item.casNo),
     productNo: toText(item.productNo),
     abbrName: toText(item.abbrName),
+    searchAttribute: toText(item.searchAttribute),
+    bg_img: toText(item.bg_img),
     keywords: toText(item.keywords),
     webKey: toText(item.webKey),
     webDesc: toText(item.webDesc),
