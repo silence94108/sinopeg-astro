@@ -37,8 +37,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          # 仓库约定不提交 lock 文件，无法用依赖缓存
-          cache: false
+          # 仓库约定不提交 lock 文件，无法启用依赖缓存
 
       - name: 安装依赖
         run: npm install
