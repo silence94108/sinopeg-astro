@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageBanner from '../../layouts/PageBanner.astro';
 import TechSidebar from '../../components/TechSidebar.astro';
-import { getJsonData, requestData } from '../../lib/utils';
+import { getJsonData, requestData, rewriteProductLinks } from '../../lib/utils';
 
 const NEWS_PARENT_ID = '6a180222b3bb1862a238ca68';
 
@@ -89,7 +89,7 @@ const crumbs = [
             <div class="main_content">
               <a href={newsListLink} class="news_ex_return">返回</a>
               {item.id ? (
-                <div class="tech_box news_ex_section jzt2-richtext" set:html={item.details || item.content || item.intro || ''}></div>
+                <div class="tech_box news_ex_section jzt2-richtext" set:html={rewriteProductLinks(item.details || item.content || item.intro || '')}></div>
               ) : <div class="jzt2-empty">暂无新闻内容</div>}
               {(up || down) && (
                 <div class="ex news_ex_section">

@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageBanner from '../../layouts/PageBanner.astro';
 import TechSidebar from '../../components/TechSidebar.astro';
-import { requestData } from '../../lib/utils';
+import { requestData, rewriteProductLinks } from '../../lib/utils';
 const ID = '6a15767a21dbfc72fd5082d2';
 export function getStaticPaths(){return requestData('service').map((item:any)=>({params:{id:String(item.id)}}));}
 const list = requestData('service',{data_type:'list',limit:-1,sort:'sortDesc'});
@@ -20,7 +20,7 @@ const tdk = {
   <PageBanner bannerImage={category.image_intro || root.image_intro || '/images/bg7.png'} titleZh="服务" titleEn="Service" crumbs={[{name:'服务',link:'/service/'},{name:item.title || '详情'}]} />
   <div class="project_section"><img src="/images/bg7.png" class="pro_bg1" alt="" /><div class="block"><div class="proj_bg"></div><div class="inner clearfix">
     <aside class="left"><span class="left_caption sp">服务</span><ul class="tech_list">{list.map((entry:any)=><li class={`tech_item${String(entry.id)===String(item.id)?' tech_current':''}`}><a href={serviceLink(entry)} class="tech_link">{entry.title}</a></li>)}{!list.length && <li class="jzt2-empty">暂无服务内容</li>}</ul><div class="pc1"><TechSidebar /></div></aside>
-    <section class="right right1">{item.id ? <><span class="tech_title"><h1>{item.title}</h1></span><div class="tech_box service_content jzt2-richtext" set:html={item.details || item.content || item.intro || ''}></div></> : <div class="jzt2-empty">暂无服务内容</div>}</section>
+    <section class="right right1">{item.id ? <><span class="tech_title"><h1>{item.title}</h1></span><div class="tech_box service_content jzt2-richtext" set:html={rewriteProductLinks(item.details || item.content || item.intro || '')}></div></> : <div class="jzt2-empty">暂无服务内容</div>}</section>
     <div class="sp"><TechSidebar /></div><div class="blank50"></div>
   </div></div></div>
 </BaseLayout>

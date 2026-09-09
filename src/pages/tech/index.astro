@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageBanner from '../../layouts/PageBanner.astro';
 import TechSidebar from '../../components/TechSidebar.astro';
-import { requestData, timeStamp2String } from '../../lib/utils';
+import { requestData, timeStamp2String, rewriteProductLinks } from '../../lib/utils';
 
 const ROOT_CATEGORY_ID = '6a1576ad55a9703f216255b1';
 const requestedId = Astro.url.searchParams.get('id') || '';
@@ -18,7 +18,7 @@ const categoryId = requestedCategoryId || current.category_id || ROOT_CATEGORY_I
 const category = requestData('category', { data_type: 'show', id: categoryId }).info || {};
 const rootCategory = requestData('category', { data_type: 'show', id: ROOT_CATEGORY_ID }).info || {};
 const bannerImage = category.image_intro || rootCategory.image_intro || '/images/bg7.png';
-const detailHtml = current.details || current.content || current.intro || '';
+const detailHtml = rewriteProductLinks(current.details || current.content || current.intro || '');
 const formatDate = (value: any) => value ? timeStamp2String(value, 'Y/m/d') : '';
 const detailLink = (item: any) => `/tech/${item.id}/?category_id=${encodeURIComponent(item.category_id || categoryId)}`;
 const siteInfo = requestData('site') || {};

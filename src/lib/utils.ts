@@ -108,24 +108,30 @@ export function requestData(
 /**
  * 将旧站富文本里的产品链接转换为 Astro 页面路由。
  * 分类详情内容来自后台，不能直接依赖编辑器是否已经更新链接。
+ * 域名前缀（https://sinopeg.com.cn/）和相对前缀（./、../）都会被识别；
+ * id 之后的其余参数（如 category_id）转成 query 保留，供详情页脚本使用。
  */
 export function rewriteProductLinks(value: unknown): string {
   let html = String(value ?? '')
+  // 链接开头的域名或 ./ ../ 前缀
+  const prefix = String.raw`(?:https?:\/\/[^"'<>\s]+\/)?(?:\.{1,2}\/)*`
+  // id 之后跟着的其余 query 参数，如 &category_id=xxx；富文本里 & 是 &amp; 转义形态，两种都认
+  const restQuery = String.raw`(?:&(?:amp;)?([^"'<>\s]*))?`
 
   html = html.replace(
-    /(?:https?:\/\/[^"'<>\s]+\/)?proex\.html\?id=([^&"'<>\s]+)/gi,
-    (_match, id: string) => `/product/${id}/`
+    new RegExp(prefix + String.raw`proex\.html\?id=([^&"'<>\s]+)` + restQuery, 'gi'),
+    (_match, id: string, rest: string) => `/product/${id}/${rest ? '?' + rest : ''}`
   )
   html = html.replace(
-    /(?:https?:\/\/[^"'<>\s]+\/)?(?:project|prolist)\.html\?category_id=([^&"'<>\s]+)/gi,
-    (_match, id: string) => `/project/${id}/`
+    new RegExp(prefix + String.raw`(?:project|prolist)\.html\?category_id=([^&"'<>\s]+)` + restQuery, 'gi'),
+    (_match, id: string, rest: string) => `/project/${id}/${rest ? '?' + rest : ''}`
   )
   html = html.replace(
-    /(?:https?:\/\/[^"'<>\s]+\/)?project\.html/gi,
+    new RegExp(prefix + String.raw`project\.html`, 'gi'),
     '/project/'
   )
   html = html.replace(
-    /(?:https?:\/\/[^"'<>\s]+\/)?prolist\.html/gi,
+    new RegExp(prefix + String.raw`prolist\.html`, 'gi'),
     '/project/'
   )
   return html

@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageBanner from '../../layouts/PageBanner.astro';
 import TechSidebar from '../../components/TechSidebar.astro';
-import { requestData } from '../../lib/utils';
+import { requestData, rewriteProductLinks } from '../../lib/utils';
 
 const ID = '6a15767a21dbfc72fd5082d2';
 const list = requestData('service', { data_type: 'list', limit: -1, sort: 'sortDesc' });
@@ -29,7 +29,7 @@ const tdk = {
         <div class="pc1"><TechSidebar /></div>
       </aside>
       <section class="right right1">
-        {current.id ? <><span class="tech_title"><h1>{current.title}</h1></span><div class="tech_box service_content jzt2-richtext" set:html={current.details || current.content || current.intro || ''}></div></> : <div class="jzt2-empty">暂无服务内容</div>}
+        {current.id ? <><span class="tech_title"><h1>{current.title}</h1></span><div class="tech_box service_content jzt2-richtext" set:html={rewriteProductLinks(current.details || current.content || current.intro || '')}></div></> : <div class="jzt2-empty">暂无服务内容</div>}
       </section>
       <div class="sp"><TechSidebar /></div><div class="blank50"></div>
     </div></div>
