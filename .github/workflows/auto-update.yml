@@ -1,12 +1,9 @@
-name: 自动更新数据包并部署
+name: 手动更新数据包并部署
 
-# 每周两次定时（北京时间周三 10:04 / 周五 10:04，UTC 前一天 02:04）
-# + 手动触发（Actions 页面 → Run workflow，或 API 调用）
+# 仅手动触发（Actions 页面 → Run workflow），不跑定时——
+# 自动改客户 FTP 风险高，上线时机由人把关。
+# 手动触发可选"跳过数据检查，直接构建并上传 FTP"（数据已在本地/仓库更新时用）
 on:
-  schedule:
-    - cron: '4 2 * * 2'   # UTC 周二 02:04 = 北京时间周三 10:04
-    - cron: '4 2 * * 4'   # UTC 周四 02:04 = 北京时间周五 10:04
-  # 手动触发（Actions 页面 → Run workflow），可勾选跳过数据检查强制部署
   workflow_dispatch:
     inputs:
       force_deploy:
