@@ -30,3 +30,9 @@ pnpm-debug.log*
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+# 建站通数据包更新
+jsonDatas_backup/
+temp_data.zip
+temp_extract/
+update-output.txt
+.playwright-mcp/

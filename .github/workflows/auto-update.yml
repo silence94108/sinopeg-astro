@@ -1,0 +1,91 @@
+name: 自动更新数据包并部署
+
+# 每周两次定时（北京时间周三 10:04 / 周五 10:04，UTC 前一天 02:04）
+# + 手动触发（Actions 页面 → Run workflow，或 API 调用）
+on:
+  schedule:
+    - cron: '4 2 * * 2'   # UTC 周二 02:04 = 北京时间周三 10:04
+    - cron: '4 2 * * 4'   # UTC 周四 02:04 = 北京时间周五 10:04
+  # 手动触发（Actions 页面 → Run workflow），可勾选跳过数据检查强制部署
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: '跳过数据检查，直接构建并上传 FTP'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # 数据包有变化时需要 commit + push
+
+concurrency:
+  group: auto-update-deploy
+  cancel-in-progress: false   # 不打断进行中的部署
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          # 上一次自动更新 push 后，本次要拿到最新提交
+          fetch-depth: 0
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 下载数据包并比对
+        id: update
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.force_deploy }}
+        env:
+          JZT_SITE_ID: ${{ secrets.JZT_SITE_ID }}
+        run: |
+          node scripts/update-data.mjs | tee update-output.txt
+          # 有变化时（::updated::）步骤标记 success，无变化时也 success 但下面按输出判断
+          if grep -q "::no-updates::" update-output.txt; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 提交数据包变更
+        if: ${{ steps.update.outputs.changed == 'true' }}
+        run: |
+          git config user.name "auto-update-bot"
+          git config user.email "auto-update-bot@users.noreply.github.com"
+          git add src/lib/jsonDatas
+          git commit -m "更新数据包"
+          git push
+
+      - name: 构建并上传 FTP
+        if: ${{ steps.update.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.force_deploy) }}
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_PORT: ${{ secrets.FTP_PORT }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
+        run: node scripts/deploy-ftp.mjs
+
+      - name: 部署摘要
+        if: ${{ always() }}
+        run: |
+          echo "## 部署结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if grep -q "::no-updates::" update-output.txt 2>/dev/null; then
+            echo "✅ 数据包无变化，未重新部署" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.update.outcome }}" = "failure" ]; then
+            echo "❌ 数据包下载或比对失败" >> $GITHUB_STEP_SUMMARY
+          elif [ ! -e update-output.txt ]; then
+            echo "🔧 强制部署模式，直接构建并上传" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🎉 数据包已更新并部署到 FTP" >> $GITHUB_STEP_SUMMARY
+          fi
