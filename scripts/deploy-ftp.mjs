@@ -4,9 +4,9 @@
  * 用法: node scripts/deploy-ftp.mjs
  * 环境变量: FTP_HOST / FTP_PORT(默认21) / FTP_USER / FTP_PASS / FTP_REMOTE_DIR 必填
  *
- * 流程: astro build → 用 basic-ftp 把 sinopeg-output/ 同步到 FTP 远程目录
- *       （ensureDir 进入远程目录 → clearWorkingDir 清空旧文件 → 整体上传，
- *         保证服务器内容和构建产物完全一致，删除的数据不会残留）
+ * 流程: astro build → 用 basic-ftp 把 sinopeg-output/ 覆盖上传到 FTP 远程目录
+ *       （不删除远程已有文件，同名文件直接覆盖——服务器上有主机自动放的
+ *         .user.ini 等文件不能动，只管传自己的产物）
  *
  * 本地跑也可用: 项目根目录建 .env 写好 FTP 配置（参考 .env.example）
  */
@@ -33,36 +33,6 @@ for (const key of REQUIRED) {
 
 const OUT_DIR = 'sinopeg-output'
 
-// 主机环境自动放的保护文件，FTP 账号无权删除，清理时跳过
-const PROTECTED_FILES = new Set(['.user.ini'])
-
-// 清空当前远程目录，跳过受保护文件；子目录递归清理
-async function clearWorkingDirExceptProtected(client) {
-  const list = await client.list()
-  for (const item of list) {
-    if (PROTECTED_FILES.has(item.name)) {
-      console.log(`⏭️  跳过受保护文件: ${item.name}`)
-      continue
-    }
-    if (item.isDirectory) {
-      await client.ensureDir(item.name)
-      await clearWorkingDirExceptProtected(client)
-      await client.cd('..')
-      try {
-        await client.removeDir(item.name)
-      } catch (err) {
-        console.warn(`⚠️  删除目录 ${item.name} 失败: ${err.message}`)
-      }
-    } else {
-      try {
-        await client.remove(item.name)
-      } catch (err) {
-        console.warn(`⚠️  删除文件 ${item.name} 失败: ${err.message}`)
-      }
-    }
-  }
-}
-
 async function main() {
   console.log('🏗️  构建站点...')
   execSync('npx astro build', { stdio: 'inherit' })
@@ -78,11 +48,8 @@ async function main() {
       password: process.env.FTP_PASS,
       secure: false
     })
-    // 先进入远程目录并清空旧文件再整体上传——
-    // 数据删除后产物里已不存在的页面不能残留在服务器上。
-    // .user.ini 是宝塔/php 主机的保护文件，FTP 删不掉（550），跳过即可。
+    // 进入目标目录（不存在则逐级创建），直接覆盖上传，不动远程已有文件
     await client.ensureDir(process.env.FTP_REMOTE_DIR)
-    await clearWorkingDirExceptProtected(client)
     await client.uploadFromDir(OUT_DIR)
     console.log('🎉 FTP 上传完成')
   } finally {
