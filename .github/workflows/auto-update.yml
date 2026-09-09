@@ -24,7 +24,7 @@ concurrency:
 jobs:
   update-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60   # FTP 全量上传几千个文件实测 20 分钟以上
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
