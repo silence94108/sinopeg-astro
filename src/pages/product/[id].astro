@@ -73,6 +73,8 @@ const siteInfo = requestData("site") || {};
 const messageSiteId = String((siteInfo as any).site_id || "") || "6a1530e4fd909f645a4db75e";
 const messageColumnId = "6a154fefcbeb8235be3bde0d";
 const messageEndpoint = "https://jzt2.china9.cn/api/message/addMsg";
+// 推荐产品:与旧版 proex.html 一致,运行期请求关联接口,后台配置变更实时生效
+const associationEndpoint = "https://jzt2.china9.cn/api/Content/associationLst";
 const productParent = categoryMap.get(PRODUCT_PARENT_ID);
 const bannerImage = productParent?.image_intro || "/images/bg7.png";
 const tdk = {
@@ -125,13 +127,6 @@ const neighborByCategory = Object.fromEntries(
     }];
   }),
 );
-const recommendList = allGoods
-  .filter((item: any) => {
-    if (String(item.id) === String(id)) return false;
-    const itemCategoryIds = String(item.category_id || "").split(",");
-    return productCategoryIds.some((categoryId) => itemCategoryIds.includes(categoryId));
-  })
-  .slice(0, 10);
 ---
 
 <BaseLayout tdk={tdk}>
@@ -235,18 +230,8 @@ const recommendList = allGoods
                 <span class="right_tui_td3">产品简称</span>
                 <span class="right_tui_td4">CAS#</span>
               </div>
-              <ul class="right_tui_list">
-                {recommendList.map((item: any) => (
-                  <li class="right_tui_item">
-                    <a href={productLink(String(item.id))} class="right_tui_link">
-                      <span class="right_tui_td1" data-label="产品编号">{item.productNo}</span>
-                      <span class="right_tui_td2" data-label="产品名称">{item.title}</span>
-                      <span class="right_tui_td3" data-label="产品简称">{item.abbrName}</span>
-                      <span class="right_tui_td4" data-label="CAS#">{item.casNo}</span>
-                    </a>
-                  </li>
-                ))}
-                {!recommendList.length && <li class="jzt2-empty">暂无推荐产品</li>}
+              <ul class="right_tui_list" data-recommend-list>
+                <li class="jzt2-empty" data-recommend-state="loading">推荐产品加载中...</li>
               </ul>
             </div>
           </div>
@@ -357,6 +342,68 @@ const recommendList = allGoods
       }
     });
   });
+
+  // 推荐产品:与旧版 proex.html 一致,运行期请求关联接口渲染,含 loading/空/失败三态
+  const normalizeProduct = (item: any) => {
+    const p = item?.info || item || {};
+    return {
+      id: p.id || p.goods_id || p.product_id || p.content_id || "",
+      title: p.title || p.name || p.goods_name || "",
+      productNo: p.productNo || p.product_no || p.product_code || p.code || "",
+      abbrName: p.abbrName || p.abbr_name || p.short_name || p.shortName || "",
+      casNo: p.casNo || p.cas_no || "",
+    };
+  };
+  const escapeHtml = (value: unknown) =>
+    String(value ?? "").replace(/[&<>"']/g, (ch) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] as string,
+    );
+  const recommendLink = (productId: string) => {
+    const categoryId = new URLSearchParams(window.location.search).get("category_id") || "";
+    return `/product/${productId}/${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ""}`;
+  };
+  (async () => {
+    const listEl = document.querySelector<HTMLElement>("[data-recommend-list]");
+    if (!listEl) return;
+    const params = new URLSearchParams();
+    params.set("site_id", document.querySelector<HTMLElement>("[data-product-message-form]")?.dataset.siteId || "");
+    params.set("page", "1");
+    params.set("limit", "10");
+    params.set("id", new URLSearchParams(window.location.search).get("id") || window.location.pathname.split("/").filter(Boolean).at(-1) || "");
+    params.set("type", "2");
+    params.set("association_type", "2");
+    try {
+      const response = await fetch("https://jzt2.china9.cn/api/Content/associationLst", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body: params,
+      });
+      const result = await response.json();
+      const rows = result && (Array.isArray(result) ? result : result.data && result.data.data) || [];
+      listEl.innerHTML = "";
+      if ((rows as any[]).length === 0) {
+        listEl.innerHTML = '<li class="jzt2-empty">暂无推荐产品</li>';
+        return;
+      }
+      (rows as any[]).forEach((item) => {
+        const p = normalizeProduct(item);
+        const cells = [
+          ["right_tui_td1", "产品编号", p.productNo],
+          ["right_tui_td2", "产品名称", p.title],
+          ["right_tui_td3", "产品简称", p.abbrName],
+          ["right_tui_td4", "CAS#", p.casNo],
+        ].map(([cls, label, value]) =>
+          `<span class="${cls}" data-label="${label}">${escapeHtml(value)}</span>`,
+        ).join("");
+        const li = document.createElement("li");
+        li.className = "right_tui_item";
+        li.innerHTML = `<a href="${recommendLink(p.id)}" class="right_tui_link">${cells}</a>`;
+        listEl.appendChild(li);
+      });
+    } catch {
+      listEl.innerHTML = '<li class="jzt2-empty">推荐产品加载失败,请稍后再试</li>';
+    }
+  })();
 </script>
 
 <style>
