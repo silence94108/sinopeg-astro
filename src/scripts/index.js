@@ -82,7 +82,10 @@ $(function () {
   //     $('.right_area').eq(0).show().siblings().hide();
   // })
   // 
-  $(".left_item > .left_info").click(function () {
+  $(".left_item > .left_info").click(function (event) {
+    if ($(event.target).closest("[data-product-toggle]").length) {
+      return;
+    }
     $(this).parents(".left_item").toggleClass('left_current');
   })
   $(".left_er_item .left_info span").click(function () {

@@ -96,16 +96,27 @@ const listLink = (id: string) => `/project/${id}/`;
   </ul>
 </aside>
 
-<script>
-  document.querySelectorAll<HTMLElement>("[data-product-left]").forEach((menu) => {
-    menu.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-      const toggle = target.closest<HTMLElement>("[data-product-toggle]");
-      if (!toggle) return;
+<script is:inline>
+  // 左侧产品分类展开/收起:用 is:inline 让浏览器原生执行(不经过 module 打包),
+  // 事件委托挂在整个菜单上,配合 DOM 就绪保护,避免模块脚本未执行导致点击无响应。
+  function bindProductLeftMenu() {
+    document.querySelectorAll("[data-product-left]").forEach((menu) => {
+      menu.addEventListener("click", (event) => {
+        var target = event.target;
+        var toggle = target.closest ? target.closest("[data-product-toggle]") : null;
+        if (!toggle) return;
 
-      const item = toggle.closest<HTMLElement>(".left_item, .left_er_item");
-      if (!item) return;
-      item.classList.toggle(item.matches(".left_item") ? "left_current" : "left_er_current");
+        var item = toggle.closest(".left_item, .left_er_item");
+        if (!item) return;
+        var cls = item.matches(".left_item") ? "left_current" : "left_er_current";
+        item.classList.toggle(cls);
+      });
     });
-  });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindProductLeftMenu);
+  } else {
+    bindProductLeftMenu();
+  }
 </script>
