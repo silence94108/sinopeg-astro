@@ -70,6 +70,9 @@ const crumbs = [
 ];
 
 const siteInfo = requestData("site") || {};
+const messageSiteId = String((siteInfo as any).site_id || "") || "6a1530e4fd909f645a4db75e";
+const messageColumnId = "6a154fefcbeb8235be3bde0d";
+const messageEndpoint = "https://jzt2.china9.cn/api/message/addMsg";
 const productParent = categoryMap.get(PRODUCT_PARENT_ID);
 const bannerImage = productParent?.image_intro || "/images/bg7.png";
 const tdk = {
@@ -79,6 +82,8 @@ const tdk = {
 };
 const mainImage = info.bg_img || info.image_intro || info.productImages?.[0]?.url || "/images/pro1.png";
 const details = rewriteProductLinks(info.details || info.content || info.intro || "");
+// 产品通用详情:取顶级"产品"分类的 details,渲染在留言表单下方(1:1 还原旧模板编号 26 的单页通用说明)
+const productParentDetails = rewriteProductLinks(categoryMap.get(PRODUCT_PARENT_ID)?.details || "");
 const keywordList = String(info.keywords || info.webKey || "")
   .split(/[,，;；]+/)
   .map((keyword) => keyword.trim())
@@ -184,10 +189,44 @@ const recommendList = allGoods
               {keywordList.length > 0 && (
                 <div class="proex_guan">
                   <img src="/images/ico7.png" alt="" />
-                  <span class="proex_guan_title">关键词：</span>
+                  <span class="proex_guan_title">关键词:</span>
                   {keywordList.map((keyword) => <span class="proex_guan_text">{keyword}</span>)}
                 </div>
               )}
+              <div class="proex_form clearfix" id="a1">
+                <form class="clearfix" data-product-message-form data-site-id={messageSiteId} data-column-id={messageColumnId} data-message-endpoint={messageEndpoint}>
+                  <div class="proex_form_info clearfix">
+                    <img src="/images/ico1.png" alt="产品" />
+                    <span style="color: red;font-size: 20px;width: 15px;"></span>
+                    <input type="text" name="product" value={info.title} readonly autocomplete="off" />
+                  </div>
+                  <div class="proex_form_info clearfix">
+                    <img src="/images/ico2.png" alt="单位" />
+                    <span style="color: red;font-size: 20px;width: 15px;"></span>
+                    <input type="text" name="company" placeholder="单位" autocomplete="off" />
+                  </div>
+                  <div class="proex_form_info clearfix">
+                    <img src="/images/ico3.png" alt="电子邮箱" />
+                    <span style="color: red;font-size: 20px;width: 15px;">*</span>
+                    <input type="text" name="email" placeholder="电子邮箱" autocomplete="off" />
+                  </div>
+                  <div class="proex_form_info clearfix">
+                    <img src="/images/ico4.png" alt="联系电话" />
+                    <span style="color: red;font-size: 20px;width: 15px;"></span>
+                    <input type="text" name="phone" placeholder="联系电话" autocomplete="off" />
+                  </div>
+                  <div class="proex_form_info proex_form_info1 clearfix">
+                    <img src="/images/ico5.png" alt="留言" />
+                    <span style="color: red;font-size: 20px;width: 15px;">*</span>
+                    <textarea name="content" placeholder="您的留言" autocomplete="off"></textarea>
+                  </div>
+                  <input type="submit" value="提交" class="proex_form_btu" data-product-message-submit />
+                </form>
+                <p class="message_form_status" data-message-status aria-live="polite"></p>
+              </div>
+              {productParentDetails
+                ? <div class="proex_box jzt2-richtext" set:html={productParentDetails}></div>
+                : null}
             </div>
             <div class="proex_block product_tab_panel" data-product-panel="recommend" hidden>
               <div class="right_tui_top">
@@ -269,6 +308,53 @@ const recommendList = allGoods
       section?.querySelectorAll<HTMLElement>("[data-product-panel]").forEach((panel) => {
         panel.hidden = panel.dataset.productPanel !== tabName;
       });
+    });
+  });
+
+  // 产品详情页留言表单:与旧版 proex.html 提交逻辑一致(不加 ip 也不影响提交)
+  document.querySelectorAll<HTMLFormElement>("[data-product-message-form]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = form.querySelector<HTMLButtonElement>("[data-product-message-submit]");
+      const status = form.querySelector<HTMLElement>("[data-message-status]");
+      if (button) button.disabled = true;
+      if (status) status.textContent = "提交中...";
+
+      try {
+        const formData = new FormData(form);
+        const email = String(formData.get("email") || "").trim();
+        const content = String(formData.get("content") || "").trim();
+        const emailPattern = /^([a-zA-Z0-9]+[_|.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;
+        if (!emailPattern.test(email)) throw new Error("请输入正确的电子邮箱");
+        if (!content) throw new Error("请输入您的留言");
+
+        const payload = new URLSearchParams();
+        payload.set("site_id", form.dataset.siteId || "");
+        payload.set("column_id", form.dataset.columnId || "");
+        payload.set("content[产品]", String(formData.get("product") || ""));
+        payload.set("content[单位]", String(formData.get("company") || ""));
+        payload.set("content[电子邮箱]", email);
+        payload.set("content[联系电话]", String(formData.get("phone") || ""));
+        payload.set("content[留言]", content);
+
+        const endpoint = form.dataset.messageEndpoint || "https://jzt2.china9.cn/api/message/addMsg";
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: payload,
+        });
+        if (!response.ok) throw new Error("submit failed");
+        const result = await response.json().catch(() => ({}));
+        if (result && result.code !== undefined && result.code !== 0 && result.code !== 200) {
+          throw new Error(result.msg || "留言提交失败");
+        }
+        form.reset();
+        if (status) status.textContent = "提交成功";
+      } catch (error) {
+        if (status) status.textContent = error instanceof Error ? error.message : "提交失败,请稍后再试";
+      } finally {
+        if (button) button.disabled = false;
+      }
     });
   });
 </script>
@@ -379,5 +465,11 @@ const recommendList = allGoods
       flex-wrap: wrap;
       gap: 8px;
     }
+  }
+
+  .message_form_status {
+    margin: 12px 0 0;
+    font-size: 14px;
+    color: #1459a8;
   }
 </style>

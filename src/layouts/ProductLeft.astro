@@ -13,6 +13,8 @@ const categories = requestData("category", {
   limit: -1,
   sort: "sortAsc",
   type: "goods",
+  // 与旧版 proLeftApp 一致:isNav=false 才参与左侧导航,过滤掉"根据应用分类"等隐藏分类
+  isNav: false,
 });
 
 const childrenMap = new Map<string, any[]>();
