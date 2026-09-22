@@ -307,13 +307,16 @@ const neighborByCategory = Object.fromEntries(
     });
   });
 
-  // 产品详情页留言表单:与旧版 proex.html 提交逻辑一致(不加 ip 也不影响提交)
+  // 产品详情页留言表单：与旧版 proex.html 保持一致（字段顺序 / 校验 / 文案 / ip）
   document.querySelectorAll<HTMLFormElement>("[data-product-message-form]").forEach((form) => {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const button = form.querySelector<HTMLButtonElement>("[data-product-message-submit]");
       const status = form.querySelector<HTMLElement>("[data-message-status]");
-      if (button) button.disabled = true;
+      if (button) {
+        button.disabled = true;
+        button.value = "提交中...";
+      }
       if (status) status.textContent = "提交中...";
 
       try {
@@ -333,23 +336,37 @@ const neighborByCategory = Object.fromEntries(
         payload.set("content[联系电话]", String(formData.get("phone") || ""));
         payload.set("content[留言]", content);
 
+        // ip 与原站一致：作为辅助字段随留言提交，获取失败不影响提交
+        try {
+          const ipResponse = await fetch("https://api.china9.cn/api/getRealIpAddr", { cache: "no-store" });
+          if (ipResponse.ok) {
+            const ip = (await ipResponse.text()).trim().replace(/^"|"$/g, "");
+            if (ip) payload.set("ip", ip);
+          }
+        } catch {
+          // 忽略
+        }
+
         const endpoint = form.dataset.messageEndpoint || "https://jzt2.china9.cn/api/message/addMsg";
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
           body: payload,
         });
-        if (!response.ok) throw new Error("submit failed");
+        if (!response.ok) throw new Error("网络异常，请稍后再试");
         const result = await response.json().catch(() => ({}));
         if (result && result.code !== undefined && result.code !== 0 && result.code !== 200) {
-          throw new Error(result.msg || "留言提交失败");
+          throw new Error(result.msg || "留言失败，请重新预约！");
         }
         form.reset();
-        if (status) status.textContent = "提交成功";
+        if (status) status.textContent = "留言成功！";
       } catch (error) {
-        if (status) status.textContent = error instanceof Error ? error.message : "提交失败,请稍后再试";
+        if (status) status.textContent = error instanceof Error ? error.message : "网络异常，请稍后再试";
       } finally {
-        if (button) button.disabled = false;
+        if (button) {
+          button.disabled = false;
+          button.value = "提交";
+        }
       }
     });
   });

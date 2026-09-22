@@ -11,22 +11,40 @@ const columnId = '6a154fefcbeb8235be3bde0d';
 const messageEndpoint = 'https://jzt2.china9.cn/api/message/addMsg';
 ---
 
-<form class={formClass} action={messageEndpoint} method="post" data-message-form data-site-id={siteId} data-column-id={columnId}>
+<form class={formClass} action={messageEndpoint} method="post" data-message-form data-site-id={siteId} data-column-id={columnId} novalidate>
   {caption && <span class="liu_caption">{caption}</span>}
   <div class={inline ? "con_block" : undefined}>
     <div class={infoClass}>
       <img src="/images/liu1.png" alt="单位" />
       <input type="text" name="company" placeholder="单位" autocomplete="organization" />
     </div>
-    <div class={infoClass}>
-      <img src="/images/liu3.png" alt="联系电话" />
-      <input type="tel" name="phone" placeholder="联系电话" autocomplete="tel" />
-    </div>
-    <div class={infoClass}>
-      <img src="/images/liu2.png" alt="电子邮箱" />
-      <span class="liu_required">*</span>
-      <input type="email" name="email" placeholder="电子邮箱" autocomplete="email" required />
-    </div>
+    {inline ? (
+      <>
+        {/* 联系页双栏版：单位 / 电话 / 邮箱（对齐原站 con_section 排版） */}
+        <div class={infoClass}>
+          <img src="/images/liu3.png" alt="联系电话" />
+          <input type="tel" name="phone" placeholder="联系电话" autocomplete="tel" />
+        </div>
+        <div class={infoClass}>
+          <img src="/images/liu2.png" alt="电子邮箱" />
+          <span class="liu_required">*</span>
+          <input type="email" name="email" placeholder="电子邮箱" autocomplete="email" required />
+        </div>
+      </>
+    ) : (
+      <>
+        {/* 悬浮弹窗单栏版：单位 / 邮箱 / 电话（对齐原站 liu_form 排版） */}
+        <div class={infoClass}>
+          <img src="/images/liu2.png" alt="电子邮箱" />
+          <span class="liu_required">*</span>
+          <input type="email" name="email" placeholder="电子邮箱" autocomplete="email" required />
+        </div>
+        <div class={infoClass}>
+          <img src="/images/liu3.png" alt="联系电话" />
+          <input type="tel" name="phone" placeholder="联系电话" autocomplete="tel" />
+        </div>
+      </>
+    )}
   </div>
 
   <div class={inline ? "con_block" : undefined}>
@@ -37,7 +55,7 @@ const messageEndpoint = 'https://jzt2.china9.cn/api/message/addMsg';
     </div>
   </div>
 
-  <button type="submit" class={buttonClass}>提交留言</button>
+  <button type="submit" class={buttonClass}>提交</button>
   <p class="message_form_status" data-message-status aria-live="polite"></p>
 </form>
 
@@ -47,7 +65,10 @@ const messageEndpoint = 'https://jzt2.china9.cn/api/message/addMsg';
       event.preventDefault();
       const button = form.querySelector<HTMLButtonElement>("[type=submit]");
       const status = form.querySelector<HTMLElement>("[data-message-status]");
-      if (button) button.disabled = true;
+      if (button) {
+        button.disabled = true;
+        button.textContent = "提交中...";
+      }
       if (status) status.textContent = "提交中...";
 
       try {
@@ -82,17 +103,22 @@ const messageEndpoint = 'https://jzt2.china9.cn/api/message/addMsg';
           headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
           body: payload,
         });
-        if (!response.ok) throw new Error("submit failed");
+        if (!response.ok) throw new Error("网络异常，请稍后再试");
         const result = await response.json().catch(() => ({}));
         if (result && result.code !== undefined && result.code !== 0 && result.code !== 200) {
-          throw new Error(result.msg || "留言提交失败");
+          throw new Error(result.msg || "留言失败，请稍后再试");
         }
         form.reset();
-        if (status) status.textContent = "提交成功";
+        if (status) status.textContent = "留言成功";
+        // 对齐原站 emit("success")：页脚弹窗版据此关闭留言弹窗
+        form.dispatchEvent(new CustomEvent("message-success", { bubbles: true }));
       } catch (error) {
-        if (status) status.textContent = error instanceof Error ? error.message : "提交失败，请稍后再试";
+        if (status) status.textContent = error instanceof Error ? error.message : "网络异常，请稍后再试";
       } finally {
-        if (button) button.disabled = false;
+        if (button) {
+          button.disabled = false;
+          button.textContent = "提交";
+        }
       }
     });
   });

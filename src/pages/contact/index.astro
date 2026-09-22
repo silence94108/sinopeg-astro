@@ -29,25 +29,32 @@ const mapPoints = requestData("contact", {
 const getMapCover = (point: any) => point?.botImg || point?.acImg || point?.bg_img || "";
 const getMapIcon = (point: any, active = false) =>
   active ? point?.acImg || point?.bg_img || "" : point?.bg_img || "";
+// 与原站 buildAmapUrl 完全一致：有经纬度走 marker，无经纬度回退关键词 search（带上点位名称）
 const getMapUrl = (point: any) => {
   if (!point) return "";
   const longitude = point.long || point.lng;
   const latitude = point.lat;
-  const name = encodeURIComponent(point.title || "");
-  const address = encodeURIComponent(point.intro || point.addr || "");
+  const addressText = String(point.intro || point.addr || "");
 
   if (longitude && latitude) {
-    return `https://uri.amap.com/marker?position=${longitude},${latitude}&name=${name}&address=${address}&src=sinopeg&coordinate=gaode&callnative=1`;
+    const params = new URLSearchParams({
+      position: `${longitude},${latitude}`,
+      name: point.title || "",
+      address: addressText,
+    });
+    return `https://uri.amap.com/marker?${params.toString()}`;
   }
 
-  return address
-    ? `https://uri.amap.com/search?keyword=${address}&src=sinopeg&coordinate=gaode&callnative=1`
-    : "";
+  const keyword = [point.title || "", addressText].filter(Boolean).join(" ");
+  if (!keyword) return "";
+  return `https://uri.amap.com/search?keyword=${encodeURIComponent(keyword)}&src=sinopeg&coordinate=gaode&callnative=1`;
 };
 
 const currentPoint = mapPoints[0];
 const currentCover = getMapCover(currentPoint);
 const currentMapUrl = getMapUrl(currentPoint);
+// 任一地图点可跳转时渲染 <a>，全部不可跳转则渲染「暂未配置」占位（对齐原站 currentPoint.amapUrl 分支）
+const hasMapUrl = (mapPoints as any[]).some((point: any) => Boolean(getMapUrl(point)));
 const siteInfo = requestData('site') || {};
 const tdk = {
   title: `联系 - ${siteInfo.title || '厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商'}`,
@@ -98,9 +105,9 @@ const tdk = {
   </div>
 
   <div class="map">
-    {currentPoint ? (
+    {hasMapUrl ? (
       <a
-        href={currentMapUrl || "#"}
+        href={currentMapUrl || undefined}
         target="_blank"
         rel="noopener noreferrer"
         class="map_visual"
@@ -108,7 +115,7 @@ const tdk = {
       >
         <img
           src={currentCover || "/images/bg7.png"}
-          alt={currentPoint.title || "联系地址"}
+          alt={currentPoint?.title || "联系地址"}
           class="map_visual_img"
           data-map-cover-image
           hidden={!currentCover}
@@ -118,38 +125,38 @@ const tdk = {
         </div>
       </a>
     ) : (
-      <div class="map_visual"><div class="map_visual_empty">暂无地图地址</div></div>
-    )}
-
-    {mapPoints.length > 0 && (
-      <div class="map_section">
-        <div class="inner clearfix">
-          {mapPoints.map((point: any, index: number) => (
-            <button
-              type="button"
-              class={`map_area ${index === 0 ? "aaaa" : ""}`}
-              data-map-index={index}
-              data-map-url={getMapUrl(point)}
-              data-map-cover={getMapCover(point)}
-              data-map-title={point.title || "联系地址"}
-              data-map-icon={getMapIcon(point)}
-              data-map-active-icon={getMapIcon(point, true)}
-            >
-              <span class={index === 0 ? "map_title" : "map_title1"}>
-                <img
-                  src={getMapIcon(point, index === 0)}
-                  alt=""
-                  class="map_icon"
-                  data-map-icon-image
-                />
-                {point.title}
-              </span>
-              <span class={index === 0 ? "map_text" : "map_text1"}>{point.intro || point.addr}</span>
-            </button>
-          ))}
-        </div>
+      <div class="map_visual">
+        <div class="map_visual_empty">暂未配置可跳转的地图地址</div>
       </div>
     )}
+
+    <div class="map_section">
+      <div class="inner clearfix">
+        {mapPoints.map((point: any, index: number) => (
+          <button
+            type="button"
+            class={`map_area ${index === 0 ? "aaaa" : ""}`}
+            data-map-index={index}
+            data-map-url={getMapUrl(point)}
+            data-map-cover={getMapCover(point)}
+            data-map-title={point.title || "联系地址"}
+            data-map-icon={getMapIcon(point)}
+            data-map-active-icon={getMapIcon(point, true)}
+          >
+            <span class={index === 0 ? "map_title" : "map_title1"}>
+              <img
+                src={getMapIcon(point, index === 0)}
+                alt=""
+                class="map_icon"
+                data-map-icon-image
+              />
+              {point.title}
+            </span>
+            <span class={index === 0 ? "map_text" : "map_text1"}>{point.intro || point.addr}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   </div>
 </BaseLayout>
 
@@ -190,6 +197,7 @@ const tdk = {
     border: 0;
     text-align: left;
     font: inherit;
+    color: inherit;
     cursor: pointer;
   }
 
@@ -232,7 +240,10 @@ const tdk = {
       if (!visual) return;
       const cover = button.dataset.mapCover || "";
       const title = button.dataset.mapTitle || "联系地址";
-      visual.setAttribute("href", button.dataset.mapUrl || "#");
+      const url = button.dataset.mapUrl || "";
+      // 无高德链接时去掉 href，避免出现无意义的 "#" 跳转（对齐原站不可点击态）
+      if (url) visual.setAttribute("href", url);
+      else visual.removeAttribute("href");
       visualImage?.setAttribute("alt", title);
       if (visualImage && cover) visualImage.src = cover;
       if (visualImage) visualImage.hidden = !cover;

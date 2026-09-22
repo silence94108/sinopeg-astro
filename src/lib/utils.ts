@@ -115,25 +115,47 @@ export function rewriteProductLinks(value: unknown): string {
   let html = String(value ?? '')
   // 链接开头的域名或 ./ ../ 前缀
   const prefix = String.raw`(?:https?:\/\/[^"'<>\s]+\/)?(?:\.{1,2}\/)*`
+  // 文件名前不能是字母/数字/点/横线，避免把 xxx.news.html 这类文件名误伤
+  const notWord = String.raw`(?<![\w.-])`
   // id 之后跟着的其余 query 参数，如 &category_id=xxx；富文本里 & 是 &amp; 转义形态，两种都认
   const restQuery = String.raw`(?:&(?:amp;)?([^"'<>\s]*))?`
 
+  // 带 id 的详情链接：先处理，避免被后面的裸 .html 规则截断
   html = html.replace(
-    new RegExp(prefix + String.raw`proex\.html\?id=([^&"'<>\s]+)` + restQuery, 'gi'),
+    new RegExp(prefix + notWord + String.raw`proex\.html\?id=([^&"'<>\s]+)` + restQuery, 'gi'),
     (_match, id: string, rest: string) => `/product/${id}/${rest ? '?' + rest : ''}`
   )
   html = html.replace(
-    new RegExp(prefix + String.raw`(?:project|prolist)\.html\?category_id=([^&"'<>\s]+)` + restQuery, 'gi'),
+    new RegExp(prefix + notWord + String.raw`news_ex\.html\?id=([^&"'<>\s]+)` + restQuery, 'gi'),
+    (_match, id: string, rest: string) => `/news/${id}/${rest ? '?' + rest : ''}`
+  )
+  html = html.replace(
+    new RegExp(prefix + notWord + String.raw`(tech|service)\.html\?id=([^&"'<>\s]+)` + restQuery, 'gi'),
+    (_match, section: string, id: string, rest: string) =>
+      `/${section.toLowerCase()}/${id}/${rest ? '?' + rest : ''}`
+  )
+  html = html.replace(
+    new RegExp(prefix + notWord + String.raw`(?:project|prolist)\.html\?category_id=([^&"'<>\s]+)` + restQuery, 'gi'),
     (_match, id: string, rest: string) => `/project/${id}/${rest ? '?' + rest : ''}`
   )
-  html = html.replace(
-    new RegExp(prefix + String.raw`project\.html`, 'gi'),
-    '/project/'
-  )
-  html = html.replace(
-    new RegExp(prefix + String.raw`prolist\.html`, 'gi'),
-    '/project/'
-  )
+
+  // 不带参数的入口链接
+  const plainRoutes: [string, string][] = [
+    ['project', '/project/'],
+    ['prolist', '/project/'],
+    ['news_ex', '/news/'],
+    ['news', '/news/'],
+    ['tech', '/tech/'],
+    ['service', '/service/'],
+    ['contact', '/contact/'],
+    ['map', '/contact/'],
+    ['search', '/search/'],
+    ['index', '/'],
+  ]
+  plainRoutes.forEach(([name, route]) => {
+    html = html.replace(new RegExp(prefix + notWord + name + String.raw`\.html`, 'gi'), route)
+  })
+
   return html
 }
 

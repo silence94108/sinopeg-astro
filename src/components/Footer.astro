@@ -199,5 +199,7 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
   };
   document.querySelectorAll("[data-open-message]").forEach((button) => button.addEventListener("click", () => setMessageOpen(true)));
   overlay?.addEventListener("click", () => setMessageOpen(false));
+  // 留言提交成功后关闭弹窗（对齐原站 @success="closeLiu"）
+  dialog?.addEventListener("message-success", () => setMessageOpen(false));
   document.querySelectorAll("[data-back-top]").forEach((button) => button.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" })));
 </script>
