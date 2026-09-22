@@ -137,6 +137,32 @@ export function rewriteProductLinks(value: unknown): string {
   return html
 }
 
+/**
+ * 按原站优先级取图片地址：bg_img > image_intro > pic > mobileUrl > phoneBanner > banner。
+ * 取不到时返回空字符串，调用方自行决定占位图。
+ */
+export function getImage(item: any): string {
+  if (!item) return ''
+  return item.bg_img || item.image_intro || item.pic || item.mobileUrl || item.phoneBanner || item.banner || ''
+}
+
+/** 去掉富文本标签，压成单行纯文本。 */
+export function stripHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** 超过 length 时截断并补省略号，未超过时原样返回。 */
+export function truncate(value: unknown, length: number): string {
+  const text = String(value ?? '')
+  return text.length > length ? `${text.slice(0, length)}...` : text
+}
+
 type DateInput = string | number | Date
 
 /**

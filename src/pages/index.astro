@@ -1,12 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HomeBanner from '../components/HomeBanner.astro';
-import { requestData } from '../lib/utils';
+import { getImage, requestData, stripHtml, timeStamp2String, truncate } from '../lib/utils';
 
+// 站点信息：原站首页用 changeWebInfo(siteInfo) 以站点信息统一覆盖 TDK，标题不带页面前缀
+const siteInfo = requestData("site")
 const tdk = {
-  title: '首页 - 厦门赛诺邦格生物科技|化合物定制合成_聚乙二醇衍生物/脂质/LNP供应商',
-  keywords: '聚乙二醇衍生物, peg化脂质, LNP递送, siRNA靶向修饰,嵌段共聚物, 药物递送系统(DDS)',
-  description: '厦门赛诺邦格生物科技股份有限公司专注于药物递送系统（DDS）及高端医用材料研发，提供聚乙二醇衍生物（单/多分散）、peg化脂质、LNP递送等产品，应用于mRNA疫苗、小核酸药物、长效蛋白药及基因治疗领域。'
+  title: siteInfo.title,
+  keywords: siteInfo.keywords,
+  description: siteInfo.description
 }
 
 // 产品中心
@@ -42,14 +44,18 @@ const serviceList = requestData("service", {
 	sort: "sortDesc"
 });
 
-// 新闻
+// 新闻：对齐原站首页模板，标题截 80、简介截 130
 const newsList = requestData("news", {
 	data_type: "list",
 	page: 1,
 	limit: 3,
 	sort: "sortDesc",
 	recommend: true
-});
+}).map((item: any) => ({
+	...item,
+	title: truncate(item.title, 80),
+	intro: truncate(item.intro, 130)
+}));
 
 // 合作
 const COOPERATION_CATEGORY_ID = "6a22243737509051865330ed";
@@ -59,7 +65,9 @@ const cooperationList = requestData("images", {
 	sort: "sortDesc",
 	category_id: COOPERATION_CATEGORY_ID
 })
-            
+// 合作文案：原站先 stripHtml 去标签，再截 130 字
+const getCooperationText = (value: unknown) => truncate(stripHtml(value), 130)
+
 // 关于我们
 const ABOUT_INFO_ID = "6a1e75a110b5fc178d494b8b";
 const aboutRes = requestData("contact", {
@@ -67,9 +75,6 @@ const aboutRes = requestData("contact", {
 	id: ABOUT_INFO_ID
 })
 const aboutInfo = aboutRes && aboutRes.info
-
-// 站点信息
-const siteInfo = requestData("site")
 ---
 
 <BaseLayout tdk={tdk}>
@@ -85,7 +90,7 @@ const siteInfo = requestData("site")
 				{goodsCategories.map((item: any) => (
 					<li class="index_pro_item">
 						<a href={`/project/${item.id}/`} class="index_pro_link">
-							<div class="index_pro_photo"><img src={item.image_intro || 'images/g2.png'} alt={item.title} /></div>
+							<div class="index_pro_photo"><img src={getImage(item) || 'images/g2.png'} alt={item.title} /></div>
 							<h3 class="index_pro_name">{ item.title }</h3>
 						</a>
 					</li>
@@ -133,7 +138,7 @@ const siteInfo = requestData("site")
 							<div class="index_tech_box">
 								<a href={`/tech/${item.id}/?category_id=${item.category_id}`}
 									class="index_tech_photo">
-									<img src={item.bg_img || 'images/tech1.png'} alt={item.title} />
+									<img src={getImage(item) || 'images/tech1.png'} alt={item.title} />
 								</a>
 							</div>
 							<h3 class="index_tech_name">{ item.title }</h3>
@@ -169,7 +174,7 @@ const siteInfo = requestData("site")
 						<li class="index_service_item">
 							<a href={`/service/${item.id}/?category_id=${item.category_id}`} class="index_service_link">
 								<div class="index_service_left">
-									<img src={item.bg_img} />
+									<img src={getImage(item)} />
 									<h3>{ item.title }</h3>
 								</div>
 								<div class="index_service_right">
@@ -196,14 +201,14 @@ const siteInfo = requestData("site")
 			<ul class="index_news_list">
 				{newsList.map((item: any) => (
 					<li class="index_news_item">
-						<a href={`/news/${item.id}/?category_id=${item.category_id}`} class="index_news_link">
-							<img src={item.bg_img || 'images/news1.png'} alt={item.title} />
+						<a href={`/news/${item.id}/?category_id=${item.category_id}&sort=sortAsc`} class="index_news_link">
+							<img src={getImage(item) || 'images/news1.png'} alt={item.title} />
 							<div class="index_news_box">
 								<h3 class="index_news_title">{ item.title }</h3>
-								<span class="index_news_text">{ item.intro }</span>
+								<span class="index_news_text">{ item.intro || item.desc }</span>
 							</div>
 							<div class="index_news_time">
-								<span>{ item.create_time }</span>
+								<span>{ timeStamp2String(item.create_time, 'm/d') }</span>
 								<img src="images/jian1.png" />
 							</div>
 						</a>
@@ -231,7 +236,7 @@ const siteInfo = requestData("site")
 						<div class="swiper-wrapper">
 							{cooperationList.map((item: any) => (
 								<div class="swiper-slide">
-									<img src={item.bg_img} alt={item.title} />
+									<img src={getImage(item)} alt={item.title} />
 								</div>
 							))}
 						</div>
@@ -251,7 +256,7 @@ const siteInfo = requestData("site")
 										<h3 class="index_hezuo_name">{item.title}</h3>
 										<span class="index_hezuo_caption">——{item.intro}</span>
 										<img src="images/ju1.png" class="index_hezuo_bg1" alt="" />
-										<span class="index_hezuo_text" set:html={item.details}></span>
+										<span class="index_hezuo_text">{ getCooperationText(item.details || item.intro) }</span>
 									</div>
 								</div>
 							))}
