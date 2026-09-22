@@ -37,7 +37,13 @@ const hasActiveDescendant = (id: string): boolean =>
 const isActive = (id: string) => currentIds.has(String(id));
 const isOpen = (id: string) => isActive(id) || hasActiveDescendant(String(id));
 const projectLink = (id: string) => `/project/${id}/`;
-const listLink = (id: string) => `/project/${id}/`;
+const listLink = (id: string, parentId?: string, rootId?: string) => {
+  const params = new URLSearchParams();
+  if (parentId) params.set("parent_id", String(parentId));
+  if (rootId) params.set("root_id", String(rootId));
+  const query = params.toString();
+  return `/project/${id}/${query ? `?${query}` : ""}`;
+};
 ---
 
 <aside class="left" data-product-left>
@@ -64,7 +70,7 @@ const listLink = (id: string) => `/project/${id}/`;
                 if (!grandchildren.length) {
                   return (
                     <li class={`left_san_item${isActive(child.id) ? " left_er_current" : ""}`}>
-                      <a href={listLink(child.id)} class="left_san_link"><span></span>{child.title}</a>
+                      <a href={listLink(child.id, root.id)} class="left_san_link"><span></span>{child.title}</a>
                     </li>
                   );
                 }
@@ -74,12 +80,12 @@ const listLink = (id: string) => `/project/${id}/`;
                     <div class="left_info">
                       <button type="button" class="left_jia" data-product-toggle aria-label={`展开${child.title}`}>+</button>
                       <button type="button" class="left_jian" data-product-toggle aria-label={`收起${child.title}`}>-</button>
-                      <a href={listLink(child.id)}><span class="left_title1">{child.title}</span></a>
+                      <a href={listLink(child.id, root.id)}><span class="left_title1">{child.title}</span></a>
                     </div>
                     <ul class="left_san_list">
                       {grandchildren.map((grand: any) => (
                         <li class={`left_san_item${isActive(grand.id) ? " left_san_current" : ""}`}>
-                          <a href={listLink(grand.id)} class="left_san_link"><span></span>{grand.title}</a>
+                          <a href={listLink(grand.id, child.id, root.id)} class="left_san_link"><span></span>{grand.title}</a>
                         </li>
                       ))}
                     </ul>

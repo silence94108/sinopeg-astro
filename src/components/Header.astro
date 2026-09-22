@@ -18,7 +18,9 @@ const isProductNav = (item: any) => {
 };
 const getNavLink = (item: any) => {
   if (isProductNav(item)) return "/project/";
-  return item.link && item.link.replace("./", "/").replace(".html", "");
+  if (!item.link) return "#";
+  const link = item.link.replace("./", "/");
+  return link.endsWith(".html") ? `${link.slice(0, -5)}/` : link;
 };
 
 const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a";
@@ -33,7 +35,13 @@ const rootCategories: any = categories.filter((item: any) => item.pid === PRODUC
 const getChildren = (pid: any) => categories.filter((c: any) => c.pid === pid);
 const hasChildren = (id: any) => getChildren(id).length > 0;
 
-const getListLink = (id: string) => `/project/${id}/`;
+const getListLink = (id: string, parentId?: string, rootId?: string) => {
+  const params = new URLSearchParams();
+  if (parentId) params.set("parent_id", String(parentId));
+  if (rootId) params.set("root_id", String(rootId));
+  const query = params.toString();
+  return `/project/${id}/${query ? `?${query}` : ""}`;
+};
 
 ---
 
@@ -177,12 +185,12 @@ const getListLink = (id: string) => `/project/${id}/`;
                         hasChildren(child.id) ? (
                           <li class="menu_er_item">
                             <div class="menu_link menu_link3">
-                              <a href={getListLink(child.id)}>{child.title}</a>
+                              <a href={getListLink(child.id, root.id)}>{child.title}</a>
                               <button type="button" class="menu_jia" aria-label={`展开${child.title}`} aria-expanded="false">+</button><button type="button" class="menu_jian" aria-label={`收起${child.title}`} aria-expanded="true">-</button>
                             </div>
-                            <ul class="menu_san_list">{getChildren(child.id).map((grand: any) => <li class="menu_san_item"><a href={getListLink(grand.id)} class="menu_san_link">{grand.title}</a></li>)}</ul>
+                            <ul class="menu_san_list">{getChildren(child.id).map((grand: any) => <li class="menu_san_item"><a href={getListLink(grand.id, child.id, root.id)} class="menu_san_link">{grand.title}</a></li>)}</ul>
                           </li>
-                        ) : <li class="menu_san_item"><a href={getListLink(child.id)} class="menu_san_link">{child.title}</a></li>
+                        ) : <li class="menu_san_item"><a href={getListLink(child.id, root.id)} class="menu_san_link">{child.title}</a></li>
                       ))}
                     </ul>}
                   </div>

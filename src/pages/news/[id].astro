@@ -39,7 +39,7 @@ const currentCategory = categories.find((category: any) => categoryIds.includes(
 const currentCategoryId = String(currentCategory.id || categoryIds[0] || '');
 const parentCategory = requestData('category', { data_type: 'show', id: NEWS_PARENT_ID }).info || {};
 const banner = parentCategory.image_intro || '/images/bg7.png';
-const sort = 'sortDesc';
+const sort = Astro.url.searchParams.get('sort') === 'sortAsc' ? 'sortAsc' : 'sortDesc';
 const allNews = requestData('news', { data_type: 'list', limit: -1, sort });
 const categoryNews = currentCategoryId
   ? allNews.filter((entry: any) => String(entry.category_id || '').split(',').includes(currentCategoryId))

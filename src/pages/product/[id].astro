@@ -91,9 +91,14 @@ const keywordList = String(info.keywords || info.webKey || "")
   .map((keyword) => keyword.trim())
   .filter(Boolean);
 
-const allGoods = requestData("goods")
-  .slice()
-  .sort((a: any, b: any) => Number(b.sort || 0) - Number(a.sort || 0));
+const sortGoods = (items: any[]) => {
+  const sortDesc = (a: any, b: any) => Number(b.sort || 0) - Number(a.sort || 0);
+  return [
+    ...items.filter((item: any) => item.is_top == 1).sort(sortDesc),
+    ...items.filter((item: any) => item.is_top != 1).sort(sortDesc),
+  ];
+};
+const allGoods = sortGoods(requestData("goods").slice());
 
 const getCategoryGoods = (categoryId: string) => allGoods.filter((item: any) =>
   String(item.category_id || "")
@@ -119,7 +124,7 @@ const down = currentIndex >= 0 && currentIndex < categoryGoods.length - 1
   : null;
 const neighborByCategory = Object.fromEntries(
   productCategoryIds.map((categoryId) => {
-    const goods = getCategoryGoods(categoryId);
+    const goods = sortGoods(getCategoryGoods(categoryId));
     const index = goods.findIndex((item: any) => String(item.id) === String(id));
     return [categoryId, {
       up: index > 0 ? toNeighbor(goods[index - 1]) : null,

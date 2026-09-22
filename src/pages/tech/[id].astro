@@ -11,7 +11,7 @@ export function getStaticPaths() {
 }
 
 const item = requestData('technology', { data_type: 'show', id: Astro.params.id }).info || {};
-const list = requestData('technology');
+const list = requestData('technology', { data_type: 'list', limit: -1, sort: 'sortDesc' });
 const categoryId = item.category_id || ROOT_CATEGORY_ID;
 const category = requestData('category', { data_type: 'show', id: categoryId }).info || {};
 const rootCategory = requestData('category', { data_type: 'show', id: ROOT_CATEGORY_ID }).info || {};

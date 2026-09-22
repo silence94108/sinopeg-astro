@@ -48,6 +48,11 @@ const tdk = {
     abbrName: string;
     searchAttribute: string;
     bg_img: string;
+    image_intro: string;
+    pic: string;
+    mobileUrl: string;
+    phoneBanner: string;
+    banner: string;
     keywords: string;
     webKey: string;
     webDesc: string;
@@ -82,6 +87,9 @@ const tdk = {
     const keywordText = item.keywords || item.webKey || '';
     return Array.from(new Set(String(keywordText).split(/[,，、;；]+/).map((text) => text.trim()).filter(Boolean)));
   };
+
+  const getImage = (item: SearchItem) =>
+    item.bg_img || item.image_intro || item.pic || item.mobileUrl || item.phoneBanner || item.banner || '/images/pro1.png';
 
   // 全量索引：搜索结果和联想词共用，只 fetch 一次
   let indexItems: SearchItem[] = [];
@@ -132,7 +140,7 @@ const tdk = {
 
   const cardHtml = (item: SearchItem) => {
     const categoryId = String(item.category_id || '').split(',')[0];
-    const image = item.bg_img || '/images/pro1.png';
+    const image = getImage(item);
     // 参考站桌面端最多 5 个关键词标签，移动端只取第一个
     const tags = (isMobile ? getKeywords(item).slice(0, 1) : getKeywords(item).slice(0, 5));
     const guanHtml = tags.length

@@ -96,7 +96,7 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
       <div class="footer_list">
         {menuList.map((item: any) => (
           <a
-            href={item.title === "产品" ? "/project/" : item.link.replace("./", "/").replace(".html", "/")}
+            href={item.title === "产品" ? "/project/" : item.link.replace("./", "/").replace(/\.html$/, "/")}
             class="footer_link"
             target={item.target ? '_blank' : null}
             rel={item.target ? 'noopener noreferrer nofollow' : null}
@@ -160,7 +160,7 @@ emailItem = list.find((x: any) => x.title === "邮箱") || list[1] || {};
       )}
     </div>
     <div class="fu_box sp">
-      <a href={phoneItem?.details ? `tel:${String(phoneItem.details).replace(/<[^>]+>/g, '')}` : "#"}><img src="/images/fu1.png" alt="电话" /></a>
+      <a href={phoneItem?.details ? `tel:${String(phoneItem.details).replace(/<[^>]+>/g, '').match(/\+?\d[\d\-\s]{6,}\d/)?.[0].replace(/[\s-]/g, '') || "#"}` : "#"}><img src="/images/fu1.png" alt="电话" /></a>
     </div>
     <div class="fu_box">
       <img src="/images/fu2.png" />

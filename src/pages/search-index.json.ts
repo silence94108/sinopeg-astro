@@ -10,6 +10,11 @@ type SearchIndexItem = {
   abbrName: string;
   searchAttribute: string;
   bg_img: string;
+  image_intro: string;
+  pic: string;
+  mobileUrl: string;
+  phoneBanner: string;
+  banner: string;
   keywords: string;
   webKey: string;
   webDesc: string;
@@ -49,6 +54,11 @@ export const GET: APIRoute = () => {
     abbrName: toText(item.abbrName),
     searchAttribute: toText(item.searchAttribute),
     bg_img: toText(item.bg_img),
+    image_intro: toText(item.image_intro),
+    pic: toText(item.pic),
+    mobileUrl: toText(item.mobileUrl),
+    phoneBanner: toText(item.phoneBanner),
+    banner: toText(item.banner),
     keywords: toText(item.keywords),
     webKey: toText(item.webKey),
     webDesc: toText(item.webDesc),
