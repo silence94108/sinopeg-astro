@@ -18,6 +18,7 @@
 
   var id = params.get('id') || '';
   var categoryId = params.get('category_id') || '';
+  var page = params.get('page') || '';
   var target = '/';
 
   if (mode === 'proex') {
@@ -25,13 +26,20 @@
   } else if (mode === 'news_ex') {
     target = id ? '/news/' + encode(id) + '/' + restQuery(['id']) : '/news/';
   } else if (mode === 'prolist' || mode === 'project') {
-    target = categoryId ? '/project/' + encode(categoryId) + '/' + restQuery(['category_id']) : '/project/';
+    // 新路由的分页是路径形态（/project/{分类}/page/{N}/），旧站是 ?page=N，这里做一次转换
+    if (categoryId) {
+      var pageSuffix = page && Number(page) > 1 ? 'page/' + encode(page) + '/' : '';
+      target = '/project/' + encode(categoryId) + '/' + pageSuffix + restQuery(['category_id', 'page']);
+    } else {
+      target = '/project/' + restQuery(['page']);
+    }
   } else if (mode === 'news') {
     target = '/news/' + restQuery([]);
   } else if (mode === 'tech') {
-    target = id ? '/tech/' + encode(id) + '/' + restQuery(['id', 'lc_id']) : '/tech/' + restQuery(['lc_id']);
+    // 带 id 时直接进详情（lc_id 作为兜底参数无需保留）；只有遗留 lc_id 时保留参数交给页面脚本解析
+    target = id ? '/tech/' + encode(id) + '/' + restQuery(['id', 'lc_id']) : '/tech/' + restQuery([]);
   } else if (mode === 'service') {
-    target = id ? '/service/' + encode(id) + '/' + restQuery(['id', 'lc_id']) : '/service/' + restQuery(['lc_id']);
+    target = id ? '/service/' + encode(id) + '/' + restQuery(['id', 'lc_id']) : '/service/' + restQuery([]);
   } else if (mode === 'search') {
     target = '/search/' + restQuery([]);
   } else if (mode === 'contact' || mode === 'map') {
