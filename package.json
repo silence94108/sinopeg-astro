@@ -11,7 +11,9 @@
     "preview": "astro preview",
     "astro": "astro",
     "update": "node scripts/update-data.mjs",
-    "deploy": "node scripts/deploy-ftp.mjs"
+    "deploy": "node scripts/deploy-ftp.mjs",
+    "deploy:full": "node scripts/deploy-ftp.mjs --full",
+    "deploy:dry": "node scripts/deploy-ftp.mjs --dry-run"
   },
   "dependencies": {
     "astro": "^7.2.2",
