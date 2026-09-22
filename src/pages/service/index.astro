@@ -23,7 +23,7 @@ const tdk = {
       <aside class="left">
         <span class="left_caption sp">服务</span>
         <ul class="tech_list">
-          {list.map((item:any) => <li class={`tech_item${String(item.id) === String(current.id) ? ' tech_current' : ''}`}><a href={serviceLink(item)} class="tech_link">{item.title}</a></li>)}
+          {list.map((item:any) => <li data-service-id={item.id} data-service-legacy-id={item.legacy_id || ''} class={`tech_item${String(item.id) === String(current.id) ? ' tech_current' : ''}`}><a href={serviceLink(item)} class="tech_link">{item.title}</a></li>)}
           {!list.length && <li class="jzt2-empty">暂无服务内容</li>}
         </ul>
         <div class="pc1"><TechSidebar /></div>
@@ -35,6 +35,24 @@ const tdk = {
     </div></div>
   </div>
 </BaseLayout>
+
+<script is:inline>
+  // 旧链接兼容：service.html?id=X（或 lc_id=X）落到 /service/ 时，转到对应的 /service/{id}/
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    var requested = params.get("id") || params.get("lc_id") || "";
+    if (!requested) return;
+    var items = Array.prototype.slice.call(document.querySelectorAll("[data-service-id]"));
+    for (var i = 0; i < items.length; i += 1) {
+      var node = items[i];
+      var id = node.getAttribute("data-service-id");
+      if (id === requested || (node.getAttribute("data-service-legacy-id") || "") === requested) {
+        window.location.replace("/service/" + id + "/");
+        return;
+      }
+    }
+  })();
+</script>
 
 <style>
   .tech_title h1 { font-size: inherit; font-weight: inherit; }
