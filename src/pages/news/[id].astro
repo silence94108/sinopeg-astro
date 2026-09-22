@@ -26,7 +26,7 @@ try {
 const categories = requestData('category', {
   data_type: 'list',
   limit: -1,
-  sort: 'sortDesc',
+  sort: 'sortAsc',
   type: 'content',
   category_id: NEWS_PARENT_ID,
   list_type: 'children'
@@ -50,16 +50,56 @@ const down = currentIndex >= 0 && currentIndex < categoryNews.length - 1 ? categ
 const recommendNews = allNews
   .filter((entry: any) => entry.recommend === true || String(entry.recommend) === '1')
   .slice(0, 8);
-const newsListLink = currentCategoryId
-  ? `/news/?category_id=${encodeURIComponent(currentCategoryId)}&sort=${sort}`
+// 左栏分类链接与面包屑：原站不带 sort
+const categoryListLink = currentCategoryId
+  ? `/news/?category_id=${encodeURIComponent(currentCategoryId)}`
   : '/news/';
+// 详情链接用条目自身的 category_id（原站模板写法），而不是拆分后的第一个分类
 const newsLink = (entry: any) => {
-  const categoryId = String(entry.category_id || '').split(',')[0] || currentCategoryId;
+  const categoryId = String(entry.category_id || '') || currentCategoryId;
   return `/news/${entry.id}/?category_id=${encodeURIComponent(categoryId)}&sort=${sort}`;
 };
+
+// 上下篇由地址栏的 category_id / sort 决定，静态页构建期拿不到 query，改由客户端按同一规则重算
+const sortNewsBy = (list: any[], sortKey: string) => {
+  const compare = (a: any, b: any) => sortKey === 'sortAsc'
+    ? Number(a.sort || 0) - Number(b.sort || 0)
+    : Number(b.sort || 0) - Number(a.sort || 0);
+  return [
+    ...list.filter((entry: any) => entry.is_top == 1).sort(compare),
+    ...list.filter((entry: any) => entry.is_top != 1).sort(compare),
+  ];
+};
+const neighborKeys = [...new Set([String(item.category_id || ''), ...categoryIds].filter(Boolean))];
+const neighborByKey = Object.fromEntries(
+  neighborKeys.flatMap((key) => {
+    const keyIds = key.split(',').map((value) => value.trim()).filter(Boolean);
+    return ['sortAsc', 'sortDesc'].map((sortKey) => {
+      const list = sortNewsBy(allNews, sortKey).filter((entry: any) =>
+        String(entry.category_id || '')
+          .split(',')
+          .map((value) => value.trim())
+          .some((entryCategoryId) => keyIds.includes(entryCategoryId)),
+      );
+      const index = list.findIndex((entry: any) => String(entry.id) === String(id));
+      const toLink = (entry: any) => entry
+        ? {
+            id: String(entry.id),
+            title: String(entry.title || ''),
+            categoryId: String(entry.category_id || ''),
+          }
+        : null;
+      return [`${sortKey}|${key}`, {
+        up: index > 0 ? toLink(list[index - 1]) : null,
+        down: index >= 0 && index < list.length - 1 ? toLink(list[index + 1]) : null,
+      }];
+    });
+  }),
+);
+
 const crumbs = [
   { name: '新闻', link: '/news/' },
-  ...(currentCategory.title ? [{ name: currentCategory.title, link: newsListLink }] : []),
+  ...(currentCategory.title ? [{ name: currentCategory.title, link: categoryListLink }] : []),
   { name: item.title || '详情' }
 ];
 ---
@@ -75,8 +115,8 @@ const crumbs = [
           <span class="left_caption sp">新闻</span>
           <ul class="tech_list">
             {categories.map((category: any) => (
-              <li class={`tech_item${String(category.id) === currentCategoryId ? ' tech_current' : ''}`}>
-                <a href={`/news/?category_id=${encodeURIComponent(category.id)}&sort=${sort}`} class="tech_link">{category.title}</a>
+              <li data-category-id={category.id} class={`tech_item${String(category.id) === currentCategoryId ? ' tech_current' : ''}`}>
+                <a href={`/news/?category_id=${encodeURIComponent(category.id)}`} class="tech_link">{category.title}</a>
               </li>
             ))}
             {!categories.length && <li class="jzt2-empty">暂无新闻分类</li>}
@@ -87,14 +127,28 @@ const crumbs = [
         <section class="right right1">
           <div class="content_wrapper">
             <div class="main_content">
-              <a href={newsListLink} class="news_ex_return">返回</a>
+              <a href={categoryListLink} class="news_ex_return" onclick="history.back(-1)">返回</a>
               {item.id ? (
                 <div class="tech_box news_ex_section jzt2-richtext" set:html={rewriteProductLinks(item.details || item.content || item.intro || '')}></div>
               ) : <div class="jzt2-empty">暂无新闻内容</div>}
               {(up || down) && (
-                <div class="ex news_ex_section">
-                  {up && <a href={newsLink(up)} class="ex_link">上一篇 {up.title}</a>}
-                  {down && <a href={newsLink(down)} class="ex_link">下一篇 {down.title}</a>}
+                <div
+                  class="ex news_ex_section"
+                  data-news-neighbors={JSON.stringify(neighborByKey)}
+                  data-news-detail-category={String(item.category_id || '')}
+                >
+                  <a
+                    href={up ? newsLink(up) : '#'}
+                    class="ex_link"
+                    data-news-neighbor="up"
+                    hidden={!up}
+                  >上一篇 {up?.title}</a>
+                  <a
+                    href={down ? newsLink(down) : '#'}
+                    class="ex_link"
+                    data-news-neighbor="down"
+                    hidden={!down}
+                  >下一篇 {down?.title}</a>
                 </div>
               )}
             </div>
@@ -122,6 +176,50 @@ const crumbs = [
     </div>
   </div>
 </BaseLayout>
+
+<script>
+  // 上下篇 / 左栏高亮与原站一致：由地址栏 category_id、sort 决定
+  const neighborsHost = document.querySelector<HTMLElement>("[data-news-neighbors]");
+  if (neighborsHost) {
+    const params = new URLSearchParams(window.location.search);
+    const sortKey = params.get("sort") === "sortAsc" ? "sortAsc" : "sortDesc";
+    const requestedCategory = params.get("category_id") || "";
+    const detailCategory = neighborsHost.dataset.newsDetailCategory || "";
+    const map: Record<string, any> = JSON.parse(neighborsHost.dataset.newsNeighbors || "{}");
+
+    // 原站用地址栏 category_id；没有则退回详情自身的 category_id（可能含多个，精确匹配即不命中）
+    const neighbors = map[`${sortKey}|${requestedCategory}`] || map[`${sortKey}|${detailCategory}`];
+    (["up", "down"] as const).forEach((direction) => {
+      const link = neighborsHost.querySelector<HTMLAnchorElement>(
+        `[data-news-neighbor="${direction}"]`,
+      );
+      if (!link) return;
+      const entry = neighbors ? neighbors[direction] : null;
+      link.hidden = !entry;
+      if (!entry) return;
+      const query = new URLSearchParams();
+      if (entry.categoryId) query.set("category_id", entry.categoryId);
+      query.set("sort", sortKey);
+      link.href = `/news/${entry.id}/?${query.toString()}`;
+      link.textContent = `${direction === "up" ? "上一篇" : "下一篇"} ${entry.title}`;
+    });
+
+    const activeCategory = requestedCategory || detailCategory;
+    document.querySelectorAll<HTMLElement>(".tech_item[data-category-id]").forEach((item) => {
+      item.classList.toggle("tech_current", item.dataset.categoryId === activeCategory);
+    });
+
+    // 同页其它新闻详情链接（相关推荐等）同步带上当前 sort，避免落到默认 sortDesc
+    document.querySelectorAll<HTMLAnchorElement>('a[href^="/news/"]').forEach((link) => {
+      const href = link.getAttribute("href") || "";
+      if (!/^\/news\/[^/?]+\//.test(href)) return;
+      const url = new URL(href, window.location.origin);
+      if (!url.searchParams.has("category_id")) return;
+      url.searchParams.set("sort", sortKey);
+      link.setAttribute("href", `${url.pathname}?${url.searchParams.toString()}`);
+    });
+  }
+</script>
 
 <style>
   .content_wrapper { display: flex; gap: 20px; align-items: flex-start; }
