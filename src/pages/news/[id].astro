@@ -131,26 +131,25 @@ const crumbs = [
               {item.id ? (
                 <div class="tech_box news_ex_section jzt2-richtext" set:html={rewriteProductLinks(item.details || item.content || item.intro || '')}></div>
               ) : <div class="jzt2-empty">暂无新闻内容</div>}
-              {(up || down) && (
-                <div
-                  class="ex news_ex_section"
-                  data-news-neighbors={JSON.stringify(neighborByKey)}
-                  data-news-detail-category={String(item.category_id || '')}
-                >
-                  <a
-                    href={up ? newsLink(up) : '#'}
-                    class="ex_link"
-                    data-news-neighbor="up"
-                    hidden={!up}
-                  >上一篇 {up?.title}</a>
-                  <a
-                    href={down ? newsLink(down) : '#'}
-                    class="ex_link"
-                    data-news-neighbor="down"
-                    hidden={!down}
-                  >下一篇 {down?.title}</a>
-                </div>
-              )}
+              {/* 容器恒渲染（对齐原站那个无条件的 div.ex）；没有上一篇/下一篇时用 hidden 隐藏对应 <a> */}
+              <div
+                class="ex news_ex_section"
+                data-news-neighbors={JSON.stringify(neighborByKey)}
+                data-news-detail-category={String(item.category_id || '')}
+              >
+                <a
+                  href={up ? newsLink(up) : '#'}
+                  class="ex_link"
+                  data-news-neighbor="up"
+                  hidden={!up}
+                >上一篇 {up?.title}</a>
+                <a
+                  href={down ? newsLink(down) : '#'}
+                  class="ex_link"
+                  data-news-neighbor="down"
+                  hidden={!down}
+                >下一篇 {down?.title}</a>
+              </div>
             </div>
 
             <aside class="sidebar_content">
@@ -238,6 +237,8 @@ const crumbs = [
   .news_ex_section :global(h3) { font-size: 1.17em; line-height: 1.5; }
   .news_ex_section :global(img) { max-width: 100%; height: auto; }
   .ex { display: flex; flex-direction: column; align-items: flex-start; }
+  /* 没有上一篇/下一篇时隐藏整个 <a>（含「上一篇」二字），与原站 v-if 表现一致；显式声明避免 .ex_link 日后设了 display 导致失效 */
+  .ex_link[hidden] { display: none; }
 
   @media (max-width: 768px) {
     .content_wrapper { flex-direction: column; }

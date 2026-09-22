@@ -503,6 +503,9 @@ const neighborByCategory = Object.fromEntries(
 </script>
 
 <style>
+  /* 没有上一篇/下一篇时隐藏整个 <a>（含「上一篇」二字），与原站 v-if 表现一致 */
+  .ex_link[hidden] { display: none; }
+
   /* 与旧版 Vue 详情页一致：悬浮小图时，在左上方弹出整图预览。 */
   .product-photo-preview {
     position: relative;
