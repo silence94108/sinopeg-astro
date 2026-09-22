@@ -54,7 +54,12 @@ const listLink = (id: string, parentId?: string, rootId?: string) => {
       const rootOpen = isOpen(root.id);
 
       return (
-        <li class={`left_item left_zhan_item${rootOpen ? " left_current" : ""}`}>
+        <li
+          class={`left_item left_zhan_item${rootOpen ? " left_current" : ""}`}
+          data-category-id={root.id}
+          data-highlight-class="left_current"
+          data-open-classes="left_current"
+        >
           <div class="left_info">
             <button type="button" class="left_jia" data-product-toggle aria-label={`展开${root.title}`}>+</button>
             <button type="button" class="left_jian" data-product-toggle aria-label={`收起${root.title}`}>-</button>
@@ -68,15 +73,27 @@ const listLink = (id: string, parentId?: string, rootId?: string) => {
                 const childOpen = isOpen(child.id);
 
                 if (!grandchildren.length) {
+                  // 无下级分类的条目在原站外层套 <ul class="left_si_list">，缩进与显隐规则都依赖它
                   return (
-                    <li class={`left_san_item${isActive(child.id) ? " left_er_current" : ""}`}>
-                      <a href={listLink(child.id, root.id)} class="left_san_link"><span></span>{child.title}</a>
-                    </li>
+                    <ul class="left_si_list">
+                      <li
+                        class={`left_san_item${isActive(child.id) ? " left_er_current" : ""}`}
+                        data-category-id={child.id}
+                        data-highlight-class="left_er_current"
+                      >
+                        <a href={listLink(child.id, root.id)} class="left_san_link"><span></span>{child.title}</a>
+                      </li>
+                    </ul>
                   );
                 }
 
                 return (
-                  <li class={`left_er_item${childOpen ? " left_er_current" : ""}`}>
+                  <li
+                    class={`left_er_item${childOpen ? " left_er_current" : ""}`}
+                    data-category-id={child.id}
+                    data-highlight-class="left_er_current"
+                    data-open-classes="left_er_current"
+                  >
                     <div class="left_info">
                       <button type="button" class="left_jia" data-product-toggle aria-label={`展开${child.title}`}>+</button>
                       <button type="button" class="left_jian" data-product-toggle aria-label={`收起${child.title}`}>-</button>
@@ -84,7 +101,11 @@ const listLink = (id: string, parentId?: string, rootId?: string) => {
                     </div>
                     <ul class="left_san_list">
                       {grandchildren.map((grand: any) => (
-                        <li class={`left_san_item${isActive(grand.id) ? " left_san_current" : ""}`}>
+                        <li
+                          class={`left_san_item${isActive(grand.id) ? " left_san_current" : ""}`}
+                          data-category-id={grand.id}
+                          data-highlight-class="left_san_current"
+                        >
                           <a href={listLink(grand.id, child.id, root.id)} class="left_san_link"><span></span>{grand.title}</a>
                         </li>
                       ))}
@@ -120,9 +141,47 @@ const listLink = (id: string, parentId?: string, rootId?: string) => {
     });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindProductLeftMenu);
-  } else {
+  // 详情页高亮以地址栏 category_id(兼容 c_id)为准,与原站 proex.html 一致。
+  // 静态页构建期读不到 query,这里按分类树的数据属性在浏览器校正层级高亮与展开。
+  function syncProductLeftActive() {
+    var params = new URLSearchParams(window.location.search);
+    var activeId = params.get("category_id") || params.get("c_id") || "";
+    if (!activeId) return;
+
+    var nodes = Array.prototype.slice.call(
+      document.querySelectorAll("[data-product-left] [data-category-id]"),
+    );
+    nodes.forEach(function (node) {
+      node.classList.remove("left_current", "left_er_current", "left_san_current");
+    });
+
+    var active = null;
+    nodes.forEach(function (node) {
+      if (!active && node.getAttribute("data-category-id") === activeId) active = node;
+    });
+    if (!active) return;
+
+    (active.getAttribute("data-highlight-class") || "").split(" ").forEach(function (cls) {
+      if (cls) active.classList.add(cls);
+    });
+
+    var parent = active.parentElement ? active.parentElement.closest("[data-category-id]") : null;
+    while (parent) {
+      (parent.getAttribute("data-open-classes") || "").split(" ").forEach(function (cls) {
+        if (cls) parent.classList.add(cls);
+      });
+      parent = parent.parentElement ? parent.parentElement.closest("[data-category-id]") : null;
+    }
+  }
+
+  function initProductLeft() {
     bindProductLeftMenu();
+    syncProductLeftActive();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initProductLeft);
+  } else {
+    initProductLeft();
   }
 </script>

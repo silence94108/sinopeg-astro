@@ -27,7 +27,7 @@ const crumbList = crumbs || []
       </div>
       <div class="zi_right">
         <a href="/" class="zi_home">首页</a>
-        {crumbList.map((crumb: Crumbs) => crumb.link
+        {crumbList.map((crumb: Crumbs, index: number) => crumb.link && index < crumbList.length - 1
           ? <a href={crumb.link} class="zi_link"> &gt; {crumb.name}</a>
           : <span class="zi_text"> &gt; {crumb.name}</span>
         )}

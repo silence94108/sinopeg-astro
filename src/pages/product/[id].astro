@@ -2,7 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PageBanner from "../../layouts/PageBanner.astro";
 import ProductLeft from "../../layouts/ProductLeft.astro";
-import { getJsonData, requestData, rewriteProductLinks } from "../../lib/utils";
+import { getJsonData, requestData, rewriteProductLinks, stripHtml } from "../../lib/utils";
 
 const PRODUCT_PARENT_ID = "6a16ba87f7cca976d042d56a";
 
@@ -53,7 +53,11 @@ const productCategoryIds = String(info.category_id || "")
   .split(",")
   .map((categoryId) => categoryId.trim())
   .filter(Boolean);
-const currentCategoryId = productCategoryIds[0] || "";
+// 与原站 proex.html 一致：优先用地址栏的 category_id（兼容旧参数 c_id），缺省才退回产品自身第一个分类
+const requestedCategoryId = Astro.url.searchParams.get("category_id")
+  || Astro.url.searchParams.get("c_id")
+  || "";
+const currentCategoryId = requestedCategoryId || productCategoryIds[0] || "";
 const categoryPath = currentCategoryId ? getCategoryPath(currentCategoryId) : [];
 const categoryLink = (categoryId: string) => `/project/${categoryId}/`;
 const productLink = (productId: string, categoryId = currentCategoryId) => {
@@ -80,7 +84,7 @@ const bannerImage = productParent?.image_intro || "/images/bg7.png";
 const tdk = {
   title: info.webTitle || `${info.title || "产品详情"} - ${siteInfo.title || ""}`,
   keywords: info.webKey || info.keywords || siteInfo.keywords || "",
-  description: info.webDesc || info.intro || siteInfo.description || "",
+  description: info.webDesc || stripHtml(info.details || info.intro) || siteInfo.description || "",
 };
 const mainImage = info.bg_img || info.image_intro || info.productImages?.[0]?.url || "/images/pro1.png";
 const details = rewriteProductLinks(info.details || info.content || info.intro || "");
@@ -156,20 +160,22 @@ const neighborByCategory = Object.fromEntries(
               <img src={mainImage} alt={info.title || "产品图片"} />
             </div>
             <div class="proex_top_box">
-              <h1 class="proex_top_title">{info.title}</h1>
+              <span class="proex_top_title">{info.title}</span>
+              {info.abbrName && <br />}
+              {info.abbrName && <br />}
               {info.abbrName && <span class="proex_top_caption">产品简称：{info.abbrName}</span>}
               {info.casNo && <span class="proex_top_caption">CAS no.：{info.casNo}</span>}
               <div class="proex_top_info">
-                {info.molecularWeight && <span>分子量：{info.molecularWeight}</span>}
-                {info.packageSize && <span>包装尺寸：{info.packageSize}</span>}
-                {info.storageMethod && <span>储存：{info.storageMethod}</span>}
+                <span>分子量：{info.molecularWeight}</span>
+                <span>包装尺寸：{info.packageSize}</span>
+                <span>储存：{info.storageMethod}</span>
               </div>
               <div class="proex_top_left">
                 <a href="tel:4009189898" class="proex_top_link">
                   <img src="/images/proex1.png" alt="" />
                   <span>订购热线：400-918-9898</span>
                 </a>
-                <a href="/contact/" class="proex_top_link proex_top_link1">
+                <a href="#a1" class="proex_top_link proex_top_link1">
                   <img src="/images/proex2.png" alt="" />
                   <span>留言咨询</span>
                 </a>
@@ -349,14 +355,23 @@ const neighborByCategory = Object.fromEntries(
   });
 
   // 推荐产品:与旧版 proex.html 一致,运行期请求关联接口渲染,含 loading/空/失败三态
+  // 关联接口返回结构不固定,按原站 getAssociationList 的五种形态兼容解析
+  const pickAssociationList = (res: any): any[] => {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    if (res && res.data && Array.isArray(res.data.data)) return res.data.data;
+    if (res && Array.isArray(res.list)) return res.list;
+    if (res && Array.isArray(res.rows)) return res.rows;
+    return [];
+  };
   const normalizeProduct = (item: any) => {
-    const p = item?.info || item || {};
+    const p = (item && (item.goods || item.product || item.info || item.content || item.detail)) || item || {};
     return {
       id: p.id || p.goods_id || p.product_id || p.content_id || "",
-      title: p.title || p.name || p.goods_name || "",
-      productNo: p.productNo || p.product_no || p.product_code || p.code || "",
+      title: p.title || p.name || p.goods_name || p.productName || p.product_name || "",
+      productNo: p.productNo || p.product_no || p.product_code || p.code || p.lc_pro_bianhao || "",
       abbrName: p.abbrName || p.abbr_name || p.short_name || p.shortName || "",
-      casNo: p.casNo || p.cas_no || "",
+      casNo: p.casNo || p.cas_no || p.cas || p.CAS || "",
     };
   };
   const escapeHtml = (value: unknown) =>
@@ -364,17 +379,21 @@ const neighborByCategory = Object.fromEntries(
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] as string,
     );
   const recommendLink = (productId: string) => {
-    const categoryId = new URLSearchParams(window.location.search).get("category_id") || "";
+    const search = new URLSearchParams(window.location.search);
+    const categoryId = search.get("category_id") || search.get("c_id") || "";
     return `/product/${productId}/${categoryId ? `?category_id=${encodeURIComponent(categoryId)}` : ""}`;
   };
   (async () => {
     const listEl = document.querySelector<HTMLElement>("[data-recommend-list]");
     if (!listEl) return;
     const params = new URLSearchParams();
+    const currentId = new URLSearchParams(window.location.search).get("id")
+      || window.location.pathname.split("/").filter(Boolean).at(-1)
+      || "";
     params.set("site_id", document.querySelector<HTMLElement>("[data-product-message-form]")?.dataset.siteId || "");
     params.set("page", "1");
     params.set("limit", "10");
-    params.set("id", new URLSearchParams(window.location.search).get("id") || window.location.pathname.split("/").filter(Boolean).at(-1) || "");
+    params.set("id", currentId);
     params.set("type", "2");
     params.set("association_type", "2");
     try {
@@ -384,14 +403,16 @@ const neighborByCategory = Object.fromEntries(
         body: params,
       });
       const result = await response.json();
-      const rows = result && (Array.isArray(result) ? result : result.data && result.data.data) || [];
+      // 原站渲染前会剔除自身,避免推荐位出现指向当前页的重复条目
+      const rows = pickAssociationList(result)
+        .map(normalizeProduct)
+        .filter((item: any) => item.id && String(item.id) !== String(currentId));
       listEl.innerHTML = "";
       if ((rows as any[]).length === 0) {
         listEl.innerHTML = '<li class="jzt2-empty">暂无推荐产品</li>';
         return;
       }
-      (rows as any[]).forEach((item) => {
-        const p = normalizeProduct(item);
+      (rows as any[]).forEach((p) => {
         const cells = [
           ["right_tui_td1", "产品编号", p.productNo],
           ["right_tui_td2", "产品名称", p.title],
@@ -409,6 +430,59 @@ const neighborByCategory = Object.fromEntries(
       listEl.innerHTML = '<li class="jzt2-empty">推荐产品加载失败,请稍后再试</li>';
     }
   })();
+</script>
+
+<script is:inline>
+  // 面包屑分类路径以地址栏 category_id（兼容 c_id）为准，与原站 proex.html 一致。
+  // 静态页构建期读不到 query，这里按左侧分类树的层级在浏览器重算。
+  function syncProductCrumbs() {
+    var params = new URLSearchParams(window.location.search);
+    var activeId = params.get("category_id") || params.get("c_id") || "";
+    if (!activeId) return;
+
+    var ziRight = document.querySelector(".banner .zi_right");
+    if (!ziRight) return;
+
+    var nodes = Array.prototype.slice.call(
+      document.querySelectorAll("[data-product-left] [data-category-id]"),
+    );
+    var current = null;
+    nodes.forEach(function (node) {
+      if (!current && node.getAttribute("data-category-id") === activeId) current = node;
+    });
+
+    // 保留「首页」「产品」两级，其余分类路径按当前分类重建
+    while (ziRight.children.length > 2) ziRight.removeChild(ziRight.lastElementChild);
+
+    var path = [];
+    while (current) {
+      path.unshift(current);
+      current = current.parentElement ? current.parentElement.closest("[data-category-id]") : null;
+    }
+
+    path.forEach(function (node) {
+      var anchor = node.querySelector("a");
+      var link = document.createElement("a");
+      link.className = "zi_link";
+      link.href = "/project/" + node.getAttribute("data-category-id") + "/";
+      link.textContent = " > " + ((anchor && anchor.textContent) || "").trim();
+      ziRight.appendChild(link);
+    });
+
+    var productTitle = document.querySelector(".proex_top_title");
+    if (productTitle) {
+      var span = document.createElement("span");
+      span.className = "zi_text";
+      span.textContent = " > " + productTitle.textContent.trim();
+      ziRight.appendChild(span);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", syncProductCrumbs);
+  } else {
+    syncProductCrumbs();
+  }
 </script>
 
 <style>
