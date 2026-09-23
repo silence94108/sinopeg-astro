@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "update": "node scripts/update-data.mjs",
+    "update:build": "npm run update && npm run build",
     "deploy": "node scripts/deploy-ftp.mjs",
     "deploy:full": "node scripts/deploy-ftp.mjs --full",
     "deploy:dry": "node scripts/deploy-ftp.mjs --dry-run"
